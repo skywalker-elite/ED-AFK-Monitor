@@ -1,0 +1,9 @@
+backup/
+__pycache__/
+test-journals/
+build/
+support/
+scratch/
+*.lnk
+afk-monitor-test.py
+test.py
