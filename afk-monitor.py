@@ -3,6 +3,7 @@ import time
 import json
 from pathlib import Path
 import argparse
+import sys
 
 # Config for events to log
 config_scans = True
@@ -62,13 +63,21 @@ def processline(line):
 			ship = Col.EASY+ship+Col.END if ship in ships_easy else Col.HARD+ship+Col.END
 			print(timestamp+'💥 Kill: '+ship+' ('+this_json['VictimFaction']+')')
 		case 'FighterDestroyed' if config_fighter:
-			print(timestamp+'⚠ Fighter destroyed!')
+			print(timestamp+'⚠  Fighter destroyed!')
 		case 'ShieldState' if config_shields:
 			shields = 'back up' if this_json['ShieldsUp'] else 'down!'
-			print(timestamp+'🛡 Ship shields are '+shields)
+			print(timestamp+'🛡  Ship shields are '+shields)
 		case 'HullDamage' if config_hull and this_json['PlayerPilot']:
 			hullhealth = round(this_json['Health'] * 100)
-			print(timestamp+'⚠ Ship hull damaged! Health: '+str(hullhealth)+'%')
+			print(timestamp+'⚠  Ship hull damaged! Health: '+str(hullhealth)+'%')
+		case 'Music' if this_json['MusicTrack'] == 'MainMenu':
+			print(timestamp+'📃 Exited to main menu')
+		case 'Commander':
+			print(timestamp+'🔄 Started new session for CMDR '+this_json['Name'])
+		case 'Shutdown':
+			print(timestamp+'🛑 Quit to desktop')
+			print('Terminating...')
+			sys.exit()
 
 # Open journal from end and watch for new lines
 with open(journal_dir+'\\'+journal_file, 'r') as file:
