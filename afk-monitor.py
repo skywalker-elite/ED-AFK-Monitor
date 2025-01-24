@@ -7,6 +7,9 @@ import argparse
 # Config for events to log
 config_scans = True
 config_bounties = True
+config_fighter = True
+config_shields = True
+config_hull = True
 
 ships_easy = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV', 'Diamondback Explorer', 'Diamondback Scout', 'Eagle', 'Imperial Courier', 'Imperial Eagle', 'Krait Phantom', 'Sidewinder', 'Viper Mk III', 'Viper Mk IV']
 
@@ -58,6 +61,14 @@ def processline(line):
 			ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
 			ship = Col.EASY+ship+Col.END if ship in ships_easy else Col.HARD+ship+Col.END
 			print(timestamp+'💥 Kill: '+ship+' ('+this_json['VictimFaction']+')')
+		case 'FighterDestroyed' if config_fighter:
+			print(timestamp+'⚠ Fighter destroyed!')
+		case 'ShieldState' if config_shields:
+			shields = 'back up' if this_json['ShieldsUp'] else 'down!'
+			print(timestamp+'🛡 Ship shields are '+shields)
+		case 'HullDamage' if config_hull and this_json['PlayerPilot']:
+			hullhealth = round(this_json['Health'] * 100)
+			print(timestamp+'⚠ Ship hull damaged! Health: '+str(hullhealth)+'%')
 
 # Open journal from end and watch for new lines
 with open(journal_dir+'\\'+journal_file, 'r') as file:
