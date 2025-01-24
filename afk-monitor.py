@@ -4,6 +4,10 @@ import json
 from pathlib import Path
 import argparse
 
+# Config for events to log
+config_scans = True
+config_bounties = True
+
 ships_easy = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV', 'Diamondback Explorer', 'Diamondback Scout', 'Eagle', 'Imperial Courier', 'Imperial Eagle', 'Krait Phantom', 'Sidewinder', 'Viper Mk III', 'Viper Mk IV']
 
 class Col:
@@ -43,17 +47,17 @@ print('Monitoring... (Press Ctrl+C to stop)')
 
 # Process incoming journal entries
 def processline(line):
-	ship = ''
 	this_json = json.loads(line)
-	if this_json['event'] == 'ShipTargeted':
-		if 'Ship' in this_json:
-			if 'Ship_Localised' in this_json:
-				ship = this_json['Ship_Localised']
-			else:
-				ship = this_json['Ship'].title()
-			timestamp = this_json['timestamp'][11:19]
+	timestamp = '['+this_json['timestamp'][11:19]+']'
+	match this_json['event']:
+		case 'ShipTargeted'if config_scans and 'Ship' in this_json:
+			ship = this_json['Ship_Localised'] if 'Ship_Localised' in this_json else this_json['Ship'].title()
 			ship = Col.EASY+ship+Col.END if ship in ships_easy else Col.HARD+ship+Col.END
-			print('['+timestamp+'] Scan: '+ship)
+			print(timestamp+'🔎 Scan: '+ship)
+		case 'Bounty' if config_bounties:
+			ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
+			ship = Col.EASY+ship+Col.END if ship in ships_easy else Col.HARD+ship+Col.END
+			print(timestamp+'💥 Kill: '+ship+' ('+this_json['VictimFaction']+')')
 
 # Open journal from end and watch for new lines
 with open(journal_dir+'\\'+journal_file, 'r') as file:
