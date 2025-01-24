@@ -4,6 +4,14 @@ import json
 from pathlib import Path
 import argparse
 
+ships_easy = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV', 'Diamondback Explorer', 'Diamondback Scout', 'Eagle', 'Imperial Courier', 'Imperial Eagle', 'Krait Phantom', 'Sidewinder', 'Viper Mk III', 'Viper Mk IV']
+
+class Col:
+	EASY = '\x1b[38;5;157m'
+	HARD = '\x1b[38;5;217m'
+	WARN = '\x1b[38;5;217m'
+	END = '\x1b[0m'
+
 # Arguments
 parser = argparse.ArgumentParser(
     prog='AFK Monitor',
@@ -28,7 +36,7 @@ for entry in fileslist:
 fileslist.close()
 journal_file = files[len(files)-1]
 
-print('ED AFK Monitor v250123 by CMDR PSIPAB')
+print('ED AFK Monitor v250124 by CMDR PSIPAB')
 print('Journal folder:',journal_dir)
 print('Latest journal:', journal_file)
 print('Monitoring... (Press Ctrl+C to stop)')
@@ -43,7 +51,9 @@ def processline(line):
 				ship = this_json['Ship_Localised']
 			else:
 				ship = this_json['Ship'].title()
-			print(this_json['timestamp'].replace('T',' ').replace('Z', ' | ')+ship)
+			timestamp = this_json['timestamp'][11:19]
+			ship = Col.EASY+ship+Col.END if ship in ships_easy else Col.HARD+ship+Col.END
+			print('['+timestamp+'] Scan: '+ship)
 
 # Open journal from end and watch for new lines
 with open(journal_dir+'\\'+journal_file, 'r') as file:
