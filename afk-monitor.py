@@ -75,6 +75,9 @@ def processline(line):
 			print(timestamp+'📃 Exited to main menu')
 		case 'Commander':
 			print(timestamp+'🔄 Started new session for CMDR '+this_json['Name'])
+		case 'SupercruiseDestinationDrop':
+			if '$MULTIPLAYER' in this_json['Type']:
+				print(timestamp+'🚀 Dropped at '+this_json['Type_Localised'])
 		case 'ReceiveText':
 			if any(x in this_json['Message'] for x in bait_messages):
 				print(timestamp+'🎣 Pirate left due to insufficient cargo value')
