@@ -44,11 +44,6 @@ for entry in fileslist:
 fileslist.close()
 journal_file = files[len(files)-1]
 
-print('ED AFK Monitor v250124 by CMDR PSIPAB')
-print('Journal folder:',journal_dir)
-print('Latest journal:', journal_file)
-print('Monitoring... (Press Ctrl+C to stop)')
-
 # Process incoming journal entries
 def processline(line):
 	this_json = json.loads(line)
@@ -79,14 +74,21 @@ def processline(line):
 			print('Terminating...')
 			sys.exit()
 
-# Open journal from end and watch for new lines
-with open(journal_dir+'\\'+journal_file, 'r') as file:
-	file.seek(0, 2)
+if __name__ == '__main__':
+	# Print header
+	print('ED AFK Monitor v250124 by CMDR PSIPAB')
+	print('Journal folder:',journal_dir)
+	print('Latest journal:', journal_file)
+	print('Monitoring... (Press Ctrl+C to stop)')
 
-	while True:
-		line = file.readline()
-		if not line:
-			time.sleep(1)
-			continue
-		
-		processline(line)
+	# Open journal from end and watch for new lines
+	with open(journal_dir+'\\'+journal_file, 'r') as file:
+		file.seek(0, 2)
+
+		while True:
+			line = file.readline()
+			if not line:
+				time.sleep(1)
+				continue
+			
+			processline(line)
