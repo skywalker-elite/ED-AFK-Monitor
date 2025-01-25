@@ -69,6 +69,11 @@ def processline(line):
 			print(timestamp+'📃 Exited to main menu')
 		case 'Commander':
 			print(timestamp+'🔄 Started new session for CMDR '+this_json['Name'])
+		case 'Cargo' if 'Inventory' in this_json:
+			for cargo in this_json['Inventory']:
+				if cargo['Stolen'] > 0:
+					name = cargo['Name_Localised'] if 'Name_Localised' in cargo else cargo['Name'].title()
+					print(timestamp+'📦 Cargo stolen: '+name+' x'+str(cargo['Stolen']))
 		case 'Shutdown':
 			print(timestamp+'🛑 Quit to desktop')
 			print('Terminating...')
