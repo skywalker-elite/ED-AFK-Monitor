@@ -129,10 +129,13 @@ if __name__ == '__main__':
 	with open(journal_dir+'\\'+journal_file, 'r') as file:
 		file.seek(0, 2)
 
-		while True:
-			line = file.readline()
-			if not line:
-				time.sleep(1)
-				continue
-			
-			processline(line)
+		try:
+			while True:
+				line = file.readline()
+				if not line:
+					time.sleep(1)
+					continue
+				
+				processline(line)
+		except KeyboardInterrupt:
+			print("...Exiting by user request")
