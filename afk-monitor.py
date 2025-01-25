@@ -66,6 +66,8 @@ def processline(line):
 		case 'HullDamage' if config_hull and this_json['PlayerPilot']:
 			hullhealth = round(this_json['Health'] * 100)
 			print(timestamp+'⚠  Ship hull damaged! Health: '+str(hullhealth)+'%')
+		case 'Died':
+			print(timestamp+'💀 Ship was destroyed!')
 		case 'Music' if this_json['MusicTrack'] == 'MainMenu':
 			print(timestamp+'📃 Exited to main menu')
 		case 'Commander':
