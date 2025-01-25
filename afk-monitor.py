@@ -12,6 +12,7 @@ config_fighter = True
 config_shields = True
 config_hull = True
 
+version = "250125"
 ships_easy = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV', 'Diamondback Explorer', 'Diamondback Scout', 'Eagle', 'Imperial Courier', 'Imperial Eagle', 'Krait Phantom', 'Sidewinder', 'Viper Mk III', 'Viper Mk IV']
 bait_messages = ['$Pirate_ThreatTooHigh', '$Pirate_NotEnoughCargo', '$Pirate_OnNoCargoFound']
 
@@ -20,6 +21,11 @@ class Col:
 	HARD = '\x1b[38;5;217m'
 	WARN = '\x1b[38;5;217m'
 	END = '\x1b[0m'
+
+class LogEvent:
+	def __init__(self):
+		self.message = ''
+		self.emoji = ''
 
 # Arguments
 parser = argparse.ArgumentParser(
@@ -48,54 +54,69 @@ journal_file = files[len(files)-1]
 # Process incoming journal entries
 def processline(line):
 	this_json = json.loads(line)
-	timestamp = '['+this_json['timestamp'][11:19]+']'
+	logmsg = LogEvent()
+
 	match this_json['event']:
-		case 'ShipTargeted'if config_scans and 'Ship' in this_json:
+		case 'ShipTargeted' if config_scans and 'Ship' in this_json:
 			ship = this_json['Ship_Localised'] if 'Ship_Localised' in this_json else this_json['Ship'].title()
-			ship = Col.EASY+ship+Col.END if ship in ships_easy else Col.HARD+ship+Col.END
-			print(timestamp+'🔎 Scan: '+ship)
+			diff = Col.EASY if ship in ships_easy else Col.HARD
+			logmsg.emoji = '🔎'
+			logmsg.message = f'{diff}Scan{Col.END}: {ship}'
 		case 'Bounty' if config_bounties:
 			ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
-			ship = Col.EASY+ship+Col.END if ship in ships_easy else Col.HARD+ship+Col.END
-			print(timestamp+'💥 Kill: '+ship+' ('+this_json['VictimFaction']+')')
-		case 'MissionRedirected':
-			if 'Mission_Massacre' in this_json['Name']:
-				print(timestamp+'✔  Completed kills for a mission')
+			diff = Col.EASY if ship in ships_easy else Col.HARD
+			logmsg.emoji = '💥'
+			logmsg.message = f'{diff}Kill{Col.END}: {ship} ({this_json['VictimFaction']})'
+		case 'MissionRedirected' if 'Mission_Massacre' in this_json['Name']:
+			logmsg.emoji = '✔ '
+			logmsg.message = 'Completed kills for a mission'
 		case 'FighterDestroyed' if config_fighter:
-			print(timestamp+'⚠  Fighter destroyed!')
+			logmsg.emoji = '⚠ '
+			logmsg.message = 'Fighter destroyed!'
 		case 'ShieldState' if config_shields:
 			shields = 'back up' if this_json['ShieldsUp'] else 'down!'
-			print(timestamp+'🛡  Ship shields are '+shields)
+			logmsg.emoji = '🛡 '
+			logmsg.message = f'Ship shields are {shields}'
 		case 'HullDamage' if config_hull and this_json['PlayerPilot']:
 			hullhealth = round(this_json['Health'] * 100)
-			print(timestamp+'⚠  Ship hull damaged! Health: '+str(hullhealth)+'%')
+			logmsg.emoji = '⚠ '
+			logmsg.message = f'Ship hull damaged! Health: {hullhealth}%'
 		case 'Died':
-			print(timestamp+'💀 Ship was destroyed!')
+			logmsg.emoji = '💀'
+			logmsg.message = 'Ship was destroyed!'
 		case 'Music' if this_json['MusicTrack'] == 'MainMenu':
-			print(timestamp+'📃 Exited to main menu')
+			logmsg.emoji = '📃'
+			logmsg.message = 'Exited to main menu'
 		case 'Commander':
-			print(timestamp+'🔄 Started new session for CMDR '+this_json['Name'])
-		case 'SupercruiseDestinationDrop':
-			if '$MULTIPLAYER' in this_json['Type']:
-				print(timestamp+'🚀 Dropped at '+this_json['Type_Localised'])
+			logmsg.emoji = '🔄'
+			logmsg.message = f'Started new session for CMDR {this_json['Name']}'
+		case 'SupercruiseDestinationDrop' if '$MULTIPLAYER' in this_json['Type']:
+			logmsg.emoji = '🚀'
+			logmsg.message = f'Dropped at {this_json['Type_Localised']}'
 		case 'ReceiveText':
 			if any(x in this_json['Message'] for x in bait_messages):
-				print(timestamp+'🎣 Pirate left due to insufficient cargo value')
+				logmsg.emoji = '🎣'
+				logmsg.message = 'Pirate left due to insufficient cargo value'
 		case 'Cargo' if 'Inventory' in this_json:
 			for cargo in this_json['Inventory']:
 				if cargo['Stolen'] > 0:
 					name = cargo['Name_Localised'] if 'Name_Localised' in cargo else cargo['Name'].title()
-					print(timestamp+'📦 Cargo stolen: '+name+' x'+str(cargo['Stolen']))
+					logmsg.emoji = '📦'
+					logmsg.message = f'Cargo stolen: {name} x{cargo['Stolen']}'
 		case 'Shutdown':
-			print(timestamp+'🛑 Quit to desktop')
+			logmsg.emoji = '🛑'
+			logmsg.message = 'Quit to desktop'
 			print('Terminating...')
 			sys.exit()
-
+	
+	if logmsg.message:
+		print(f'[{this_json['timestamp'][11:19]}]{logmsg.emoji} {logmsg.message}')
+		
 if __name__ == '__main__':
 	# Print header
-	print('ED AFK Monitor v250124 by CMDR PSIPAB')
-	print('Journal folder:',journal_dir)
-	print('Latest journal:', journal_file)
+	print(f'ED AFK Monitor v{version} by CMDR PSIPAB')
+	print(f'Journal folder: {journal_dir}')
+	print(f'Latest journal: {journal_file}')
 	print('Monitoring... (Press Ctrl+C to stop)')
 
 	# Open journal from end and watch for new lines
