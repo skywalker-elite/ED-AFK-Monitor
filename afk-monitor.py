@@ -58,6 +58,9 @@ def processline(line):
 			ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
 			ship = Col.EASY+ship+Col.END if ship in ships_easy else Col.HARD+ship+Col.END
 			print(timestamp+'💥 Kill: '+ship+' ('+this_json['VictimFaction']+')')
+		case 'MissionRedirected':
+			if 'Mission_Massacre' in this_json['Name']:
+				print(timestamp+'✔  Completed kills for a mission')
 		case 'FighterDestroyed' if config_fighter:
 			print(timestamp+'⚠  Fighter destroyed!')
 		case 'ShieldState' if config_shields:
