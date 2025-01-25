@@ -113,12 +113,13 @@ def processline(line):
 		case 'Shutdown':
 			logmsg.emoji = '🛑'
 			logmsg.message = 'Quit to desktop'
-			print('Terminating...')
-			sys.exit()
-	
+
 	if logmsg.message:
 		print(f'[{this_json['timestamp'][11:19]}]{logmsg.emoji} {logmsg.message}')
-		
+	if 'Quit' in logmsg.message:
+		print('Terminating...')
+		sys.exit()
+
 if __name__ == '__main__':
 	# Print header
 	print(f'ED AFK Monitor v{version} by CMDR PSIPAB')
