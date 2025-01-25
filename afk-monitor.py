@@ -19,7 +19,9 @@ bait_messages = ['$Pirate_ThreatTooHigh', '$Pirate_NotEnoughCargo', '$Pirate_OnN
 class Col:
 	EASY = '\x1b[38;5;157m'
 	HARD = '\x1b[38;5;217m'
-	WARN = '\x1b[38;5;217m'
+	WARN = '\x1b[38;5;215m'
+	BAD = '\x1b[38;5;9m'
+	GOOD = '\x1b[38;5;10m'
 	END = '\x1b[0m'
 
 class LogEvent:
@@ -59,31 +61,36 @@ def processline(line):
 	match this_json['event']:
 		case 'ShipTargeted' if config_scans and 'Ship' in this_json:
 			ship = this_json['Ship_Localised'] if 'Ship_Localised' in this_json else this_json['Ship'].title()
-			diff = Col.EASY if ship in ships_easy else Col.HARD
+			col = Col.EASY if ship in ships_easy else Col.HARD
 			logmsg.emoji = '🔎'
-			logmsg.message = f'{diff}Scan{Col.END}: {ship}'
+			logmsg.message = f'{col}Scan{Col.END}: {ship}'
 		case 'Bounty' if config_bounties:
 			ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
-			diff = Col.EASY if ship in ships_easy else Col.HARD
+			col = Col.EASY if ship in ships_easy else Col.HARD
 			logmsg.emoji = '💥'
-			logmsg.message = f'{diff}Kill{Col.END}: {ship} ({this_json['VictimFaction']})'
+			logmsg.message = f'{col}Kill{Col.END}: {ship} ({this_json['VictimFaction']})'
 		case 'MissionRedirected' if 'Mission_Massacre' in this_json['Name']:
 			logmsg.emoji = '✔ '
 			logmsg.message = 'Completed kills for a mission'
 		case 'FighterDestroyed' if config_fighter:
-			logmsg.emoji = '⚠ '
-			logmsg.message = 'Fighter destroyed!'
+			logmsg.emoji = '🕹 '
+			logmsg.message = f'{Col.BAD}Fighter destroyed!{Col.END}'
 		case 'ShieldState' if config_shields:
-			shields = 'back up' if this_json['ShieldsUp'] else 'down!'
+			if this_json['ShieldsUp']: 
+				shields = 'back up'
+				col = Col.GOOD
+			else:
+				shields = 'down!'
+				col = Col.BAD
 			logmsg.emoji = '🛡 '
-			logmsg.message = f'Ship shields are {shields}'
+			logmsg.message = f'{col}Ship shields are {shields}{Col.END}'
 		case 'HullDamage' if config_hull and this_json['PlayerPilot']:
 			hullhealth = round(this_json['Health'] * 100)
 			logmsg.emoji = '⚠ '
-			logmsg.message = f'Ship hull damaged! Health: {hullhealth}%'
+			logmsg.message = f'{Col.BAD}Ship hull damaged!{Col.END} (Health: {hullhealth}%)'
 		case 'Died':
 			logmsg.emoji = '💀'
-			logmsg.message = 'Ship was destroyed!'
+			logmsg.message = f'{Col.BAD}Ship was destroyed!{Col.END}'
 		case 'Music' if this_json['MusicTrack'] == 'MainMenu':
 			logmsg.emoji = '📃'
 			logmsg.message = 'Exited to main menu'
@@ -96,13 +103,13 @@ def processline(line):
 		case 'ReceiveText':
 			if any(x in this_json['Message'] for x in bait_messages):
 				logmsg.emoji = '🎣'
-				logmsg.message = 'Pirate left due to insufficient cargo value'
+				logmsg.message = f'{Col.WARN}Pirate didn\'t engage due to insufficient cargo value{Col.END}'
 		case 'Cargo' if 'Inventory' in this_json:
 			for cargo in this_json['Inventory']:
 				if cargo['Stolen'] > 0:
 					name = cargo['Name_Localised'] if 'Name_Localised' in cargo else cargo['Name'].title()
 					logmsg.emoji = '📦'
-					logmsg.message = f'Cargo stolen: {name} x{cargo['Stolen']}'
+					logmsg.message = f'{Col.BAD}Cargo stolen!{Col.END} ({name} x{cargo['Stolen']})'
 		case 'Shutdown':
 			logmsg.emoji = '🛑'
 			logmsg.message = 'Quit to desktop'
