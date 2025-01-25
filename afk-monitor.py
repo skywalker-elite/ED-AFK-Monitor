@@ -13,6 +13,7 @@ config_shields = True
 config_hull = True
 
 ships_easy = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV', 'Diamondback Explorer', 'Diamondback Scout', 'Eagle', 'Imperial Courier', 'Imperial Eagle', 'Krait Phantom', 'Sidewinder', 'Viper Mk III', 'Viper Mk IV']
+bait_messages = ['$Pirate_ThreatTooHigh', '$Pirate_NotEnoughCargo', '$Pirate_OnNoCargoFound']
 
 class Col:
 	EASY = '\x1b[38;5;157m'
@@ -69,6 +70,9 @@ def processline(line):
 			print(timestamp+'📃 Exited to main menu')
 		case 'Commander':
 			print(timestamp+'🔄 Started new session for CMDR '+this_json['Name'])
+		case 'ReceiveText':
+			if any(x in this_json['Message'] for x in bait_messages):
+				print(timestamp+'🎣 Pirate left due to insufficient cargo value')
 		case 'Cargo' if 'Inventory' in this_json:
 			for cargo in this_json['Inventory']:
 				if cargo['Stolen'] > 0:
