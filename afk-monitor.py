@@ -104,12 +104,10 @@ def processline(line):
 			if any(x in this_json['Message'] for x in bait_messages):
 				logmsg.emoji = '🎣'
 				logmsg.message = f'{Col.WARN}Pirate didn\'t engage due to insufficient cargo value{Col.END}'
-		case 'Cargo' if 'Inventory' in this_json:
-			for cargo in this_json['Inventory']:
-				if cargo['Stolen'] > 0:
-					name = cargo['Name_Localised'] if 'Name_Localised' in cargo else cargo['Name'].title()
-					logmsg.emoji = '📦'
-					logmsg.message = f'{Col.BAD}Cargo stolen!{Col.END} ({name} x{cargo['Stolen']})'
+		case 'EjectCargo' if not this_json["Abandoned"]:
+			name = this_json['Type_Localised'] if 'Type_Localised' else this_json['Type'].title()
+			logmsg.emoji = '📦'
+			logmsg.message = f'{Col.BAD}Cargo stolen/ejected!{Col.END} ({name})'
 		case 'Shutdown':
 			logmsg.emoji = '🛑'
 			logmsg.message = 'Quit to desktop'
