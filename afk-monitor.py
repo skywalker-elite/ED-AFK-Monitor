@@ -29,6 +29,13 @@ class LogEvent:
 		self.message = ''
 		self.emoji = ''
 
+class Tracking:
+	def __init__(self):
+		self.scans = []
+		self.lines = 0
+
+track = Tracking()
+
 # Arguments
 parser = argparse.ArgumentParser(
     prog='AFK Monitor',
@@ -61,11 +68,14 @@ def processline(line):
 	match this_json['event']:
 		case 'ShipTargeted' if config_scans and 'Ship' in this_json:
 			ship = this_json['Ship_Localised'] if 'Ship_Localised' in this_json else this_json['Ship'].title()
-			col = Col.EASY if ship in ships_easy else Col.HARD
-			logmsg.emoji = '🔎'
-			logmsg.message = f'{col}Scan{Col.END}: {ship}'
+			if not ship in track.scans:
+				track.scans.append(ship)
+				col = Col.EASY if ship in ships_easy else Col.HARD
+				logmsg.emoji = '🔎'
+				logmsg.message = f'{col}Scan{Col.END}: {ship}'
 		case 'Bounty' if config_bounties:
 			ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
+			track.scans.clear()
 			col = Col.EASY if ship in ships_easy else Col.HARD
 			logmsg.emoji = '💥'
 			logmsg.message = f'{col}Kill{Col.END}: {ship} ({this_json['VictimFaction']})'
@@ -114,6 +124,7 @@ def processline(line):
 
 	if logmsg.message:
 		print(f'[{this_json['timestamp'][11:19]}]{logmsg.emoji} {logmsg.message}')
+		track.lines +=1
 	if 'Quit' in logmsg.message:
 		print('Terminating...')
 		sys.exit()
