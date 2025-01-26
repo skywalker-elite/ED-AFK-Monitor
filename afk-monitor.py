@@ -22,8 +22,8 @@ class Col:
 	EASY = '\x1b[38;5;157m'
 	HARD = '\x1b[38;5;217m'
 	WARN = '\x1b[38;5;215m'
-	BAD = '\x1b[38;5;9m'
-	GOOD = '\x1b[38;5;10m'
+	BAD = '\x1b[38;5;15m\x1b[48;5;1m'
+	GOOD = '\x1b[38;5;15m\x1b[48;5;2m'
 	END = '\x1b[0m'
 
 class LogEvent:
@@ -95,7 +95,7 @@ def processline(line):
 			col = Col.BAD if this_json['FuelMain'] < fuel_tank * 0.1 else Col.WARN
 			fuelremaining = round((this_json['FuelMain'] / fuel_tank) * 100)
 			logmsg.emoji = '⛽'
-			logmsg.message = f'{col}Fuel running low!{Col.END} (Remaining: {fuelremaining}%)'
+			logmsg.message = f'{col}Fuel reserves low!{Col.END} (Remaining: {fuelremaining}%)'
 		case 'FighterDestroyed' if config_fighter:
 			logmsg.emoji = '🕹 '
 			logmsg.message = f'{Col.BAD}Fighter destroyed!{Col.END}'
@@ -131,7 +131,7 @@ def processline(line):
 		case 'EjectCargo' if not this_json["Abandoned"]:
 			name = this_json['Type_Localised'] if 'Type_Localised' else this_json['Type'].title()
 			logmsg.emoji = '📦'
-			logmsg.message = f'{Col.BAD}Cargo stolen/ejected!{Col.END} ({name})'
+			logmsg.message = f'{Col.BAD}Cargo ejected!{Col.END} ({name})'
 		case 'Shutdown':
 			logmsg.emoji = '🛑'
 			logmsg.message = 'Quit to desktop'
