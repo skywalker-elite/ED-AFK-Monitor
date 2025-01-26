@@ -14,7 +14,7 @@ config_shields = True
 config_hull = True
 fuel_tank = 64	# Standard size for T10 & Cutter
 
-version = "250125"
+version = "250126"
 ships_easy = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV', 'Diamondback Explorer', 'Diamondback Scout', 'Eagle', 'Imperial Courier', 'Imperial Eagle', 'Krait Phantom', 'Sidewinder', 'Viper Mk III', 'Viper Mk IV']
 bait_messages = ['$Pirate_ThreatTooHigh', '$Pirate_NotEnoughCargo', '$Pirate_OnNoCargoFound']
 
@@ -76,18 +76,20 @@ def processline(line):
 				col = Col.EASY if ship in ships_easy else Col.HARD
 				logmsg.emoji = '🔎'
 				logmsg.message = f'{col}Scan{Col.END}: {ship}'
-		case 'Bounty' if config_bounties:
-			ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
+		case 'Bounty':
 			track.scans.clear()
-			thiskill = datetime.fromisoformat(this_json['timestamp'])
-			killtime = ''
-			if track.lastkill:
-				seconds = (thiskill-track.lastkill).total_seconds()
-				killtime = f' [+{time_format(seconds)}]'
-			track.lastkill = datetime.fromisoformat(this_json['timestamp'])
-			col = Col.EASY if ship in ships_easy else Col.HARD
-			logmsg.emoji = '💥'
-			logmsg.message = f'{col}Kill{Col.END}: {ship} ({this_json['VictimFaction']}){killtime}'
+			if config_bounties:
+				ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
+				
+				thiskill = datetime.fromisoformat(this_json['timestamp'])
+				killtime = ''
+				if track.lastkill:
+					seconds = (thiskill-track.lastkill).total_seconds()
+					killtime = f' [+{time_format(seconds)}]'
+				track.lastkill = datetime.fromisoformat(this_json['timestamp'])
+				col = Col.EASY if ship in ships_easy else Col.HARD
+				logmsg.emoji = '💥'
+				logmsg.message = f'{col}Kill{Col.END}: {ship} ({this_json['VictimFaction']}){killtime}'
 		case 'MissionRedirected' if 'Mission_Massacre' in this_json['Name']:
 			logmsg.emoji = '✔ '
 			logmsg.message = 'Completed kills for a mission'
