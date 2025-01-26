@@ -12,6 +12,7 @@ config_bounties = True
 config_fighter = True
 config_shields = True
 config_hull = True
+fuel_tank = 64	# Standard size for T10 & Cutter
 
 version = "250125"
 ships_easy = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV', 'Diamondback Explorer', 'Diamondback Scout', 'Eagle', 'Imperial Courier', 'Imperial Eagle', 'Krait Phantom', 'Sidewinder', 'Viper Mk III', 'Viper Mk IV']
@@ -90,6 +91,11 @@ def processline(line):
 		case 'MissionRedirected' if 'Mission_Massacre' in this_json['Name']:
 			logmsg.emoji = '✔ '
 			logmsg.message = 'Completed kills for a mission'
+		case 'ReservoirReplenished' if this_json['FuelMain'] < fuel_tank * 0.2:
+			col = Col.BAD if this_json['FuelMain'] < fuel_tank * 0.1 else Col.WARN
+			fuelremaining = round((this_json['FuelMain'] / fuel_tank) * 100)
+			logmsg.emoji = '⛽'
+			logmsg.message = f'{col}Fuel running low!{Col.END} (Remaining: {fuelremaining}%)'
 		case 'FighterDestroyed' if config_fighter:
 			logmsg.emoji = '🕹 '
 			logmsg.message = f'{Col.BAD}Fighter destroyed!{Col.END}'
