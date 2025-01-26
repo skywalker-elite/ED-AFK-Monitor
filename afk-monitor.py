@@ -150,3 +150,5 @@ if __name__ == '__main__':
 				processline(line)
 		except KeyboardInterrupt:
 			print("...Exiting by user request")
+		except:
+			input("Something went wrong, hit ENTER to exit")
