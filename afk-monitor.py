@@ -6,12 +6,9 @@ import argparse
 import sys
 from datetime import datetime
 
-# Config for events to log
-config_scans = True
-config_bounties = True
-config_fighter = True
-config_shields = True
-config_hull = True
+# Config
+log_scans = True
+log_bounties = True
 fuel_tank = 64	# Standard size for T10 & Cutter
 
 version = "250126"
@@ -69,7 +66,7 @@ def processline(line):
 	logmsg = LogEvent()
 
 	match this_json['event']:
-		case 'ShipTargeted' if config_scans and 'Ship' in this_json:
+		case 'ShipTargeted' if log_scans and 'Ship' in this_json:
 			ship = this_json['Ship_Localised'] if 'Ship_Localised' in this_json else this_json['Ship'].title()
 			if not ship in track.scans:
 				track.scans.append(ship)
@@ -78,7 +75,7 @@ def processline(line):
 				logmsg.message = f'{col}Scan{Col.END}: {ship}'
 		case 'Bounty':
 			track.scans.clear()
-			if config_bounties:
+			if log_bounties:
 				ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
 				
 				thiskill = datetime.fromisoformat(this_json['timestamp'])
@@ -98,10 +95,10 @@ def processline(line):
 			fuelremaining = round((this_json['FuelMain'] / fuel_tank) * 100)
 			logmsg.emoji = '⛽'
 			logmsg.message = f'{col}Fuel reserves low!{Col.END} (Remaining: {fuelremaining}%)'
-		case 'FighterDestroyed' if config_fighter:
+		case 'FighterDestroyed':
 			logmsg.emoji = '🕹 '
 			logmsg.message = f'{Col.BAD}Fighter destroyed!{Col.END}'
-		case 'ShieldState' if config_shields:
+		case 'ShieldState':
 			if this_json['ShieldsUp']: 
 				shields = 'back up'
 				col = Col.GOOD
@@ -110,7 +107,7 @@ def processline(line):
 				col = Col.BAD
 			logmsg.emoji = '🛡 '
 			logmsg.message = f'{col}Ship shields are {shields}{Col.END}'
-		case 'HullDamage' if config_hull and this_json['PlayerPilot']:
+		case 'HullDamage' if this_json['PlayerPilot']:
 			hullhealth = round(this_json['Health'] * 100)
 			logmsg.emoji = '⚠ '
 			logmsg.message = f'{Col.BAD}Ship hull damaged!{Col.END} (Health: {hullhealth}%)'
