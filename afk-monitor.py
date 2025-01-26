@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import argparse
 import sys
+from datetime import datetime
 
 # Config for events to log
 config_scans = True
@@ -33,6 +34,7 @@ class Tracking:
 	def __init__(self):
 		self.scans = []
 		self.lines = 0
+		self.lastkill = 0
 
 track = Tracking()
 
@@ -76,9 +78,15 @@ def processline(line):
 		case 'Bounty' if config_bounties:
 			ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
 			track.scans.clear()
+			thiskill = datetime.fromisoformat(this_json['timestamp'])
+			killtime = ''
+			if track.lastkill:
+				seconds = (thiskill-track.lastkill).total_seconds()
+				killtime = f' [+{time_format(seconds)}]'
+			track.lastkill = datetime.fromisoformat(this_json['timestamp'])
 			col = Col.EASY if ship in ships_easy else Col.HARD
 			logmsg.emoji = '💥'
-			logmsg.message = f'{col}Kill{Col.END}: {ship} ({this_json['VictimFaction']})'
+			logmsg.message = f'{col}Kill{Col.END}: {ship} ({this_json['VictimFaction']}){killtime}'
 		case 'MissionRedirected' if 'Mission_Massacre' in this_json['Name']:
 			logmsg.emoji = '✔ '
 			logmsg.message = 'Completed kills for a mission'
@@ -128,6 +136,19 @@ def processline(line):
 	if 'Quit' in logmsg.message:
 		print('Terminating...')
 		sys.exit()
+
+def time_format(seconds: int) -> str:
+    if seconds is not None:
+        seconds = int(seconds)
+        h = seconds // 3600 % 24
+        m = seconds % 3600 // 60
+        s = seconds % 3600 % 60
+        if h > 0:
+            return '{:d}h{:d}m{:d}s'.format(h, m, s)
+        elif m > 0:
+            return '{:d}m{:d}s'.format(m, s)
+        elif s > 0:
+            return '{:d}s'.format(s)
 
 if __name__ == '__main__':
 	# Print header
