@@ -28,13 +28,20 @@ class LogEvent:
 		self.message = ''
 		self.emoji = ''
 
-class Tracking:
+class Instance:
 	def __init__(self):
 		self.scans = []
-		self.lines = 0
 		self.lastkill = 0
+		self.killstime = 0
+		self.kills = 0
 
-track = Tracking()
+	def reset(self):
+		self.scans = []
+		self.lastkill = 0
+		self.killstime = 0
+		self.kills = 0
+
+session = Instance()
 
 # Arguments
 parser = argparse.ArgumentParser(
@@ -68,22 +75,23 @@ def processline(line):
 	match this_json['event']:
 		case 'ShipTargeted' if log_scans and 'Ship' in this_json:
 			ship = this_json['Ship_Localised'] if 'Ship_Localised' in this_json else this_json['Ship'].title()
-			if not ship in track.scans:
-				track.scans.append(ship)
+			if not ship in session.scans:
+				session.scans.append(ship)
 				col = Col.EASY if ship in ships_easy else Col.HARD
 				logmsg.emoji = '🔎'
 				logmsg.message = f'{col}Scan{Col.END}: {ship}'
 		case 'Bounty':
-			track.scans.clear()
+			session.scans.clear()
+			session.kills +=1
+			thiskill = datetime.fromisoformat(this_json['timestamp'])
+			killtime = ''
+			if session.lastkill:
+				seconds = (thiskill-session.lastkill).total_seconds()
+				killtime = f' [+{time_format(seconds)}]'
+				session.killstime += seconds
+			session.lastkill = datetime.fromisoformat(this_json['timestamp'])
 			if log_bounties:
 				ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
-				
-				thiskill = datetime.fromisoformat(this_json['timestamp'])
-				killtime = ''
-				if track.lastkill:
-					seconds = (thiskill-track.lastkill).total_seconds()
-					killtime = f' [+{time_format(seconds)}]'
-				track.lastkill = datetime.fromisoformat(this_json['timestamp'])
 				col = Col.EASY if ship in ships_easy else Col.HARD
 				logmsg.emoji = '💥'
 				logmsg.message = f'{col}Kill{Col.END}: {ship} ({this_json['VictimFaction']}){killtime}'
@@ -120,9 +128,11 @@ def processline(line):
 		case 'Commander':
 			logmsg.emoji = '🔄'
 			logmsg.message = f'Started new session for CMDR {this_json['Name']}'
+			session.reset()
 		case 'SupercruiseDestinationDrop' if '$MULTIPLAYER' in this_json['Type']:
 			logmsg.emoji = '🚀'
 			logmsg.message = f'Dropped at {this_json['Type_Localised']}'
+			session.reset()
 		case 'ReceiveText':
 			if any(x in this_json['Message'] for x in bait_messages):
 				logmsg.emoji = '🎣'
@@ -134,10 +144,11 @@ def processline(line):
 		case 'Shutdown':
 			logmsg.emoji = '🛑'
 			logmsg.message = 'Quit to desktop'
-
 	if logmsg.message:
 		print(f'[{this_json['timestamp'][11:19]}]{logmsg.emoji} {logmsg.message}')
-		track.lines +=1
+	if session.kills % 10 == 0 and this_json['event'] == 'Bounty':
+		avgtime = time_format(session.killstime / (session.kills - 1))
+		print(f'[{this_json['timestamp'][11:19]}]📝 Session kills: {session.kills} (Avg time: {avgtime})')
 	if 'Quit' in logmsg.message:
 		print('Terminating...')
 		sys.exit()
