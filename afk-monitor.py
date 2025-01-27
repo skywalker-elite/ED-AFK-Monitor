@@ -11,7 +11,7 @@ log_scans = True
 log_bounties = True
 fuel_tank = 64	# Standard size for T10 & Cutter
 
-version = "250126"
+version = "250127"
 ships_easy = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV', 'Diamondback Explorer', 'Diamondback Scout', 'Eagle', 'Imperial Courier', 'Imperial Eagle', 'Krait Phantom', 'Sidewinder', 'Viper Mk III', 'Viper Mk IV']
 bait_messages = ['$Pirate_ThreatTooHigh', '$Pirate_NotEnoughCargo', '$Pirate_OnNoCargoFound']
 
@@ -41,7 +41,12 @@ class Instance:
 		self.killstime = 0
 		self.kills = 0
 
+class Tracking():
+	def __init__(self):
+		self.fighterhull = 0
+
 session = Instance()
+track = Tracking()
 
 # Arguments
 parser = argparse.ArgumentParser(
@@ -115,6 +120,11 @@ def processline(line):
 				col = Col.BAD
 			logmsg.emoji = '🛡 '
 			logmsg.message = f'{col}Ship shields are {shields}{Col.END}'
+		case 'HullDamage' if this_json['Fighter'] and track.fighterhull != this_json['Health']:
+			track.fighterhull = this_json['Health']
+			hullhealth = round(this_json['Health'] * 100)
+			logmsg.emoji = '🕹 '
+			logmsg.message = f'{Col.WARN}Fighter hull damaged!{Col.END} (Health: {hullhealth}%)'
 		case 'HullDamage' if this_json['PlayerPilot']:
 			hullhealth = round(this_json['Health'] * 100)
 			logmsg.emoji = '⚠ '
