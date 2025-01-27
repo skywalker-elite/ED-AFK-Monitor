@@ -111,6 +111,9 @@ def processline(line):
 		case 'FighterDestroyed':
 			logmsg.emoji = '🕹 '
 			logmsg.message = f'{Col.BAD}Fighter destroyed!{Col.END}'
+		case 'LaunchFighter' if not this_json['PlayerControlled']:
+			logmsg.emoji = '🕹 '
+			logmsg.message = f'Fighter launched'
 		case 'ShieldState':
 			if this_json['ShieldsUp']: 
 				shields = 'back up'
