@@ -4,14 +4,15 @@ import json
 from pathlib import Path
 import argparse
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Config
 log_scans = True
 log_bounties = True
+use_utc = False
 fuel_tank = 64	# Standard size for T10 & Cutter
 
-version = "250127"
+version = "250128"
 ships_easy = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV', 'Diamondback Explorer', 'Diamondback Scout', 'Eagle', 'Imperial Courier', 'Imperial Eagle', 'Krait Phantom', 'Sidewinder', 'Viper Mk III', 'Viper Mk IV']
 ships_hard = ['Alliance Crusader', 'Alliance Challenger', 'Alliance Chieftain', 'Anaconda', 'Federal Assault Ship', 'Federal Dropship', 'Federal Gunship', 'Fer-De-Lance', 'Imperial Clipper', 'Krait MK II', 'Python', 'Vulture']
 bait_messages = ['$Pirate_ThreatTooHigh', '$Pirate_NotEnoughCargo', '$Pirate_OnNoCargoFound']
@@ -70,9 +71,13 @@ fileslist.close()
 journal_file = files[len(files)-1]
 
 # Log events
-def logevent(message, emoji='', time=datetime.now()):
-	timestamp = datetime.strftime(time, '%H:%M:%S')
-	print(f'[{timestamp}]{emoji} {message}')
+def logevent(message, emoji='', logtime=None):
+	if logtime:
+		logtime = logtime if use_utc else logtime.astimezone()
+	else:
+		logtime = datetime.now(timezone.utc) if use_utc else datetime.now()
+	logtime = datetime.strftime(logtime, '%H:%M:%S')
+	print(f'[{logtime}]{emoji} {message}')
 	track.logged +=1
 
 # Process incoming journal entries
