@@ -24,11 +24,6 @@ class Col:
 	GOOD = '\x1b[38;5;15m\x1b[48;5;2m'
 	END = '\x1b[0m'
 
-class LogEvent:
-	def __init__(self):
-		self.message = ''
-		self.emoji = ''
-
 class Instance:
 	def __init__(self):
 		self.scans = []
@@ -45,6 +40,7 @@ class Instance:
 class Tracking():
 	def __init__(self):
 		self.fighterhull = 0
+		self.logged = 0
 
 session = Instance()
 track = Tracking()
@@ -73,48 +69,51 @@ for entry in fileslist:
 fileslist.close()
 journal_file = files[len(files)-1]
 
-# Process incoming journal entries
-def processline(line):
-	this_json = json.loads(line)
-	logmsg = LogEvent()
+# Log events
+def logevent(message, emoji='', time=datetime.now()):
+	timestamp = datetime.strftime(time, '%H:%M:%S')
+	print(f'[{timestamp}]{emoji} {message}')
+	track.logged +=1
 
+# Process incoming journal entries
+def processevent(line):
+	this_json = json.loads(line)
+	logtime = datetime.fromisoformat(this_json['timestamp'])
+	
 	match this_json['event']:
 		case 'ShipTargeted' if log_scans and 'Ship' in this_json:
 			ship = this_json['Ship_Localised'] if 'Ship_Localised' in this_json else this_json['Ship'].title()
 			if not ship in session.scans and (ship in ships_easy or ship in ships_hard):
 				session.scans.append(ship)
 				col = Col.EASY if ship in ships_easy else Col.HARD
-				logmsg.emoji = '🔎'
-				logmsg.message = f'{col}Scan{Col.END}: {ship}'
+				logevent(f'{col}Scan{Col.END}: {ship}', '🔎', logtime)
 		case 'Bounty':
 			session.scans.clear()
 			session.kills +=1
-			thiskill = datetime.fromisoformat(this_json['timestamp'])
+			thiskill = logtime
 			killtime = ''
 			if session.lastkill:
 				seconds = (thiskill-session.lastkill).total_seconds()
 				killtime = f' [+{time_format(seconds)}]'
 				session.killstime += seconds
-			session.lastkill = datetime.fromisoformat(this_json['timestamp'])
+			session.lastkill = logtime
 			if log_bounties:
 				ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
-				col = Col.EASY if ship in ships_easy else Col.HARD
-				logmsg.emoji = '💥'
-				logmsg.message = f'{col}Kill{Col.END}: {ship} ({this_json['VictimFaction']}){killtime}'
+				col = Col.HARD if ship in ships_hard else Col.EASY
+				logevent(f'{col}Kill{Col.END}: {ship} ({this_json['VictimFaction']}){killtime}', '💥', logtime)
+			if session.kills % 10 == 0 and this_json['event'] == 'Bounty':
+				avgtime = time_format(session.killstime / (session.kills - 1))
+				logevent(f'Session kills: {session.kills} (Avg time: {avgtime})', '📝', logtime)
 		case 'MissionRedirected' if 'Mission_Massacre' in this_json['Name']:
-			logmsg.emoji = '✔ '
-			logmsg.message = 'Completed kills for a mission'
+			logevent('Completed kills for a mission', '✅', logtime)
 		case 'ReservoirReplenished' if this_json['FuelMain'] < fuel_tank * 0.2:
 			col = Col.BAD if this_json['FuelMain'] < fuel_tank * 0.1 else Col.WARN
 			fuelremaining = round((this_json['FuelMain'] / fuel_tank) * 100)
-			logmsg.emoji = '⛽'
-			logmsg.message = f'{col}Fuel reserves low!{Col.END} (Remaining: {fuelremaining}%)'
+			logevent(f'{col}Fuel reserves low!{Col.END} (Remaining: {fuelremaining}%)', '⛽', logtime)
 		case 'FighterDestroyed':
-			logmsg.emoji = '🕹 '
-			logmsg.message = f'{Col.BAD}Fighter destroyed!{Col.END}'
+			logevent(f'{Col.BAD}Fighter destroyed!{Col.END}', '🕹️', logtime)
 		case 'LaunchFighter' if not this_json['PlayerControlled']:
-			logmsg.emoji = '🕹 '
-			logmsg.message = f'Fighter launched'
+			logevent(f'Fighter launched', '🕹️', logtime)
 		case 'ShieldState':
 			if this_json['ShieldsUp']: 
 				shields = 'back up'
@@ -122,50 +121,33 @@ def processline(line):
 			else:
 				shields = 'down!'
 				col = Col.BAD
-			logmsg.emoji = '🛡 '
-			logmsg.message = f'{col}Ship shields {shields}{Col.END}'
+			logevent(f'{col}Ship shields {shields}{Col.END}', '🛡️', logtime)
 		case 'HullDamage' if this_json['Fighter'] and track.fighterhull != this_json['Health']:
 			track.fighterhull = this_json['Health']
 			hullhealth = round(this_json['Health'] * 100)
-			logmsg.emoji = '🕹 '
-			logmsg.message = f'{Col.WARN}Fighter hull damaged!{Col.END} (Health: {hullhealth}%)'
+			logevent(f'{Col.WARN}Fighter hull damaged!{Col.END} (Health: {hullhealth}%)', '🕹️', logtime)
 		case 'HullDamage' if this_json['PlayerPilot']:
 			hullhealth = round(this_json['Health'] * 100)
-			logmsg.emoji = '⚠ '
-			logmsg.message = f'{Col.BAD}Ship hull damaged!{Col.END} (Health: {hullhealth}%)'
+			logevent(f'{Col.BAD}Ship hull damaged!{Col.END} (Health: {hullhealth}%)', '🛠️', logtime)
 		case 'Died':
-			logmsg.emoji = '💀'
-			logmsg.message = f'{Col.BAD}Ship destroyed!{Col.END}'
+			logevent(f'{Col.BAD}Ship destroyed!{Col.END}', '💀', logtime)
 		case 'Music' if this_json['MusicTrack'] == 'MainMenu':
-			logmsg.emoji = '📃'
-			logmsg.message = 'Exited to main menu'
+			logevent('Exited to main menu', '📃', logtime)
 		case 'Commander':
-			logmsg.emoji = '🔄'
-			logmsg.message = f'Started new session for CMDR {this_json['Name']}'
+			logevent(f'Started new session for CMDR {this_json['Name']}', '🔄', logtime)
 			session.reset()
 		case 'SupercruiseDestinationDrop' if '$MULTIPLAYER' in this_json['Type']:
-			logmsg.emoji = '🚀'
-			logmsg.message = f'Dropped at {this_json['Type_Localised']}'
+			logevent(f'Dropped at {this_json['Type_Localised']}', '🚀', logtime)
 			session.reset()
 		case 'ReceiveText':
 			if any(x in this_json['Message'] for x in bait_messages):
-				logmsg.emoji = '🎣'
-				logmsg.message = f'{Col.WARN}Pirate didn\'t engage due to insufficient cargo value{Col.END}'
+				logevent(f'{Col.WARN}Pirate didn\'t engage due to insufficient cargo value{Col.END}', '🎣', logtime)
 		case 'EjectCargo' if not this_json["Abandoned"]:
 			name = this_json['Type_Localised'] if 'Type_Localised' else this_json['Type'].title()
-			logmsg.emoji = '📦'
-			logmsg.message = f'{Col.BAD}Cargo ejected!{Col.END} ({name})'
+			logevent(f'{Col.BAD}Cargo ejected!{Col.END} ({name})', '📦', logtime)
 		case 'Shutdown':
-			logmsg.emoji = '🛑'
-			logmsg.message = 'Quit to desktop'
-	if logmsg.message:
-		print(f'[{this_json['timestamp'][11:19]}]{logmsg.emoji} {logmsg.message}')
-	if session.kills % 10 == 0 and this_json['event'] == 'Bounty':
-		avgtime = time_format(session.killstime / (session.kills - 1))
-		print(f'[{this_json['timestamp'][11:19]}]📝 Session kills: {session.kills} (Avg time: {avgtime})')
-	if 'Quit' in logmsg.message:
-		print('Terminating...')
-		sys.exit()
+			logevent('Quit to desktop', '🛑', logtime)
+			sys.exit()
 
 def time_format(seconds: int) -> str:
     if seconds is not None:
@@ -198,7 +180,7 @@ if __name__ == '__main__':
 					time.sleep(1)
 					continue
 				
-				processline(line)
+				processevent(line)
 		except KeyboardInterrupt:
 			print("...Exiting by user request")
 		except:
