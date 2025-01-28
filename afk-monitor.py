@@ -13,6 +13,7 @@ fuel_tank = 64	# Standard size for T10 & Cutter
 
 version = "250127"
 ships_easy = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV', 'Diamondback Explorer', 'Diamondback Scout', 'Eagle', 'Imperial Courier', 'Imperial Eagle', 'Krait Phantom', 'Sidewinder', 'Viper Mk III', 'Viper Mk IV']
+ships_hard = ['Alliance Crusader', 'Alliance Challenger', 'Alliance Chieftain', 'Anaconda', 'Federal Assault Ship', 'Federal Dropship', 'Federal Gunship', 'Fer-De-Lance', 'Imperial Clipper', 'Krait MK II', 'Python', 'Vulture']
 bait_messages = ['$Pirate_ThreatTooHigh', '$Pirate_NotEnoughCargo', '$Pirate_OnNoCargoFound']
 
 class Col:
@@ -80,7 +81,7 @@ def processline(line):
 	match this_json['event']:
 		case 'ShipTargeted' if log_scans and 'Ship' in this_json:
 			ship = this_json['Ship_Localised'] if 'Ship_Localised' in this_json else this_json['Ship'].title()
-			if not ship in session.scans:
+			if not ship in session.scans and (ship in ships_easy or ship in ships_hard):
 				session.scans.append(ship)
 				col = Col.EASY if ship in ships_easy else Col.HARD
 				logmsg.emoji = '🔎'
