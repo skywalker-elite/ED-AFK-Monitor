@@ -17,14 +17,6 @@ ships_easy = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV
 ships_hard = ['Alliance Crusader', 'Alliance Challenger', 'Alliance Chieftain', 'Anaconda', 'Federal Assault Ship', 'Federal Dropship', 'Federal Gunship', 'Fer-De-Lance', 'Imperial Clipper', 'Krait MK II', 'Python', 'Vulture']
 bait_messages = ['$Pirate_ThreatTooHigh', '$Pirate_NotEnoughCargo', '$Pirate_OnNoCargoFound']
 
-class Col:
-	EASY = '\x1b[38;5;157m'
-	HARD = '\x1b[38;5;217m'
-	WARN = '\x1b[38;5;215m'
-	BAD = '\x1b[38;5;15m\x1b[48;5;1m'
-	GOOD = '\x1b[38;5;15m\x1b[48;5;2m'
-	END = '\x1b[0m'
-
 class Instance:
 	def __init__(self):
 		self.scans = []
@@ -45,6 +37,16 @@ class Tracking():
 
 session = Instance()
 track = Tracking()
+
+class Col:
+	CYAN = '\033[96m'
+	YELL = '\033[93m'
+	EASY = '\x1b[38;5;157m'
+	HARD = '\x1b[38;5;217m'
+	WARN = '\x1b[38;5;215m'
+	BAD = '\x1b[38;5;15m\x1b[48;5;1m'
+	GOOD = '\x1b[38;5;15m\x1b[48;5;2m'
+	END = '\x1b[0m'
 
 # Arguments
 parser = argparse.ArgumentParser(
@@ -169,10 +171,13 @@ def time_format(seconds: int) -> str:
 
 if __name__ == '__main__':
 	# Print header
-	print(f'ED AFK Monitor v{version} by CMDR PSIPAB')
-	print(f'Journal folder: {journal_dir}')
-	print(f'Latest journal: {journal_file}')
-	print('Monitoring... (Press Ctrl+C to stop)')
+	print(f'\n{Col.CYAN}{'='*37}{Col.END}')
+	print(f'{Col.CYAN}ED AFK Monitor v{version} by CMDR PSIPAB{Col.END}')
+	print(f'{Col.CYAN}{'='*37}{Col.END}\n')
+	print(f'{Col.YELL}Journal folder:{Col.END} {journal_dir}')
+	print(f'{Col.YELL}Latest journal:{Col.END} {journal_file}\n')
+	print(f'Starting... (Press Ctrl+C to stop)\n')
+	logevent(f'Monitor started for {journal_file}', '📖')
 
 	# Open journal from end and watch for new lines
 	with open(journal_dir+'\\'+journal_file, 'r') as file:
@@ -186,7 +191,8 @@ if __name__ == '__main__':
 					continue
 				
 				processevent(line)
-		except KeyboardInterrupt:
-			print("...Exiting by user request")
+		except (KeyboardInterrupt, SystemExit):
+			logevent(f'Monitor stopped for {journal_file}', '📕')
+			if sys.argv[0].count('\\') > 1: input('\nPress ENTER to exit')	# This is *still* horrible
 		except:
 			input("Something went wrong, hit ENTER to exit")
