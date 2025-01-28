@@ -122,7 +122,7 @@ def processline(line):
 				shields = 'down!'
 				col = Col.BAD
 			logmsg.emoji = '🛡 '
-			logmsg.message = f'{col}Ship shields are {shields}{Col.END}'
+			logmsg.message = f'{col}Ship shields {shields}{Col.END}'
 		case 'HullDamage' if this_json['Fighter'] and track.fighterhull != this_json['Health']:
 			track.fighterhull = this_json['Health']
 			hullhealth = round(this_json['Health'] * 100)
@@ -134,7 +134,7 @@ def processline(line):
 			logmsg.message = f'{Col.BAD}Ship hull damaged!{Col.END} (Health: {hullhealth}%)'
 		case 'Died':
 			logmsg.emoji = '💀'
-			logmsg.message = f'{Col.BAD}Ship was destroyed!{Col.END}'
+			logmsg.message = f'{Col.BAD}Ship destroyed!{Col.END}'
 		case 'Music' if this_json['MusicTrack'] == 'MainMenu':
 			logmsg.emoji = '📃'
 			logmsg.message = 'Exited to main menu'
