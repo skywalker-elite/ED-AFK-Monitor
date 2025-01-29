@@ -5,12 +5,20 @@ from pathlib import Path
 import argparse
 import sys
 from datetime import datetime, timezone
+import re
+try:
+	from discord import SyncWebhook
+	discord_avail = True
+except ImportError:
+	discord_avail = False
+	print('Discord.py unavailable - operating with terminal output only\n')
 
 # Config
 log_scans = True
 log_bounties = True
 use_utc = False
 fuel_tank = 64	# Standard size for T10 & Cutter
+discord_webhook = ''	# Discord webhook URL
 
 version = "250128"
 ships_easy = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV', 'Diamondback Explorer', 'Diamondback Scout', 'Eagle', 'Imperial Courier', 'Imperial Eagle', 'Krait Phantom', 'Sidewinder', 'Viper Mk III', 'Viper Mk IV']
@@ -37,6 +45,7 @@ class Tracking():
 
 session = Instance()
 track = Tracking()
+if discord_avail: webhook = SyncWebhook.from_url(discord_webhook)
 
 class Col:
 	CYAN = '\033[96m'
@@ -81,6 +90,10 @@ def logevent(message, emoji='', logtime=None):
 	logtime = datetime.strftime(logtime, '%H:%M:%S')
 	print(f'[{logtime}]{emoji} {message}')
 	track.logged +=1
+	if discord_avail:
+		ansi = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
+		discord_message = ansi.sub('', message)
+		webhook.send(f'{emoji} {discord_message} {{{logtime}}}')
 
 # Process incoming journal entries
 def processevent(line):
@@ -93,7 +106,8 @@ def processevent(line):
 			if not ship in session.scans and (ship in ships_easy or ship in ships_hard):
 				session.scans.append(ship)
 				col = Col.EASY if ship in ships_easy else Col.HARD
-				logevent(f'{col}Scan{Col.END}: {ship}', '🔎', logtime)
+				hard = '(!)' if ship in ships_hard else ''
+				logevent(f'{col}Scan{Col.END}{hard}: {ship}', '🔎', logtime)
 		case 'Bounty':
 			session.scans.clear()
 			session.kills +=1
@@ -107,7 +121,8 @@ def processevent(line):
 			if log_bounties:
 				ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
 				col = Col.HARD if ship in ships_hard else Col.EASY
-				logevent(f'{col}Kill{Col.END}: {ship} ({this_json['VictimFaction']}){killtime}', '💥', logtime)
+				hard = '(!)' if ship in ships_hard else ''
+				logevent(f'{col}Kill{Col.END}{hard}: {ship} ({this_json['VictimFaction']}){killtime}', '💥', logtime)
 			if session.kills % 10 == 0 and this_json['event'] == 'Bounty':
 				avgtime = time_format(session.killstime / (session.kills - 1))
 				logevent(f'Session kills: {session.kills} (Avg time: {avgtime})', '📝', logtime)
@@ -171,7 +186,7 @@ def time_format(seconds: int) -> str:
 
 if __name__ == '__main__':
 	# Print header
-	print(f'\n{Col.CYAN}{'='*37}{Col.END}')
+	print(f'{Col.CYAN}{'='*37}{Col.END}')
 	print(f'{Col.CYAN}ED AFK Monitor v{version} by CMDR PSIPAB{Col.END}')
 	print(f'{Col.CYAN}{'='*37}{Col.END}\n')
 	print(f'{Col.YELL}Journal folder:{Col.END} {journal_dir}')
