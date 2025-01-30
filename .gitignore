@@ -7,3 +7,4 @@ scratch/
 *.lnk
 afk-monitor-test.py
 test.py
+afk_monitor.ini
