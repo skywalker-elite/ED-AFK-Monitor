@@ -88,7 +88,7 @@ journal_file = files[len(files)-1]
 # Log events
 def logevent(msg_term, msg_discord=None, emoji='', timestamp=None, loglevel=1):
 	if timestamp:
-		logtime = logtime if use_utc else timestamp.astimezone()
+		logtime = timestamp if use_utc else timestamp.astimezone()
 	else:
 		logtime = datetime.now(timezone.utc) if use_utc else datetime.now()
 	logtime = datetime.strftime(logtime, '%H:%M:%S')
