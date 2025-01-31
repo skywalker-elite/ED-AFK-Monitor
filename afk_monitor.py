@@ -153,8 +153,9 @@ def processevent(line):
 					emoji='💥', timestamp=logtime, loglevel=log)
 			
 			if session.kills % 10 == 0 and this_json['event'] == 'Bounty':
-				avgtime = time_format(session.killstime / (session.kills - 1))
-				logevent(msg_term=f'Session kills: {session.kills} (Avg time: {avgtime})',
+				avgseconds = session.killstime / (session.kills - 1)
+				kills_hour = round(3600 / avgseconds, 1)
+				logevent(msg_term=f'Session kills: {session.kills} (Avg: {time_format(avgseconds)} | {kills_hour}/h)',
 						emoji='📝', timestamp=logtime, loglevel=loglevel['Reports'])
 		case 'MissionRedirected' if 'Mission_Massacre' in this_json['Name']:
 			track.missioncompletes += 1
