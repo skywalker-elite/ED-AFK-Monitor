@@ -32,7 +32,7 @@ discord_webhook = config['Discord']['WebhookURL']
 discord_user = config['Discord']['UserID']
 
 # Internals
-version = "250130"
+version = "250131"
 ships_easy = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV', 'Diamondback Explorer', 'Diamondback Scout', 'Eagle', 'Imperial Courier', 'Imperial Eagle', 'Krait Phantom', 'Sidewinder', 'Viper Mk III', 'Viper Mk IV']
 ships_hard = ['Alliance Crusader', 'Alliance Challenger', 'Alliance Chieftain', 'Anaconda', 'Federal Assault Ship', 'Federal Dropship', 'Federal Gunship', 'Fer-De-Lance', 'Imperial Clipper', 'Krait MK II', 'Python', 'Vulture']
 bait_messages = ['$Pirate_ThreatTooHigh', '$Pirate_NotEnoughCargo', '$Pirate_OnNoCargoFound']
@@ -115,11 +115,17 @@ def processevent(line):
 			ship = this_json['Ship_Localised'] if 'Ship_Localised' in this_json else this_json['Ship'].title()
 			if not ship in session.scans and (ship in ships_easy or ship in ships_hard):
 				session.scans.append(ship)
-				col = Col.EASY if ship in ships_easy else Col.HARD
-				hard = ' ☠️' if ship in ships_hard else ''
+				if ship in ships_easy:
+					col = Col.EASY
+					log = loglevel['ScanEasy']
+					hard = ''
+				else:
+					col = Col.HARD
+					log = loglevel['ScanHard']
+					hard = ' ☠️'
 				logevent(msg_term=f'{col}Scan{Col.END}: {ship}',
 						msg_discord=f'**{ship}**{hard}',
-						emoji='🔎', timestamp=logtime, loglevel=loglevel['Scans'])
+						emoji='🔎', timestamp=logtime, loglevel=log)
 		case 'Bounty':
 			session.scans.clear()
 			session.kills +=1
@@ -134,11 +140,17 @@ def processevent(line):
 			session.lastkill = logtime
 
 			ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
-			col = Col.HARD if ship in ships_hard else Col.EASY
-			hard = ' ☠️' if ship in ships_hard else ''
+			if ship in ships_easy:
+				col = Col.EASY
+				log = loglevel['KillEasy']
+				hard = ''
+			else:
+				col = Col.HARD
+				log = loglevel['KillHard']
+				hard = ' ☠️'
 			logevent(msg_term=f'{col}Kill{Col.END}: {ship} ({this_json['VictimFaction']}){killtime_t}',
 					msg_discord=f'**{ship}**{hard} ({this_json['VictimFaction']}){killtime_d}',
-					emoji='💥', timestamp=logtime, loglevel=loglevel['Kills'])
+					emoji='💥', timestamp=logtime, loglevel=log)
 			
 			if session.kills % 10 == 0 and this_json['event'] == 'Bounty':
 				avgtime = time_format(session.killstime / (session.kills - 1))
@@ -167,9 +179,9 @@ def processevent(line):
 					emoji='🕹️', timestamp=logtime, loglevel=loglevel['FighterDown'])
 		case 'LaunchFighter' if not this_json['PlayerControlled']:
 			logevent(msg_term='Fighter launched',
-					emoji='🕹️', timestamp=logtime, loglevel=loglevel['Default'])
+					emoji='🕹️', timestamp=logtime, loglevel=2)
 		case 'ShieldState':
-			if this_json['ShieldsUp']: 
+			if this_json['ShieldsUp']:
 				shields = 'back up'
 				col = Col.GOOD
 			else:
@@ -195,14 +207,14 @@ def processevent(line):
 					emoji='💀', timestamp=logtime, loglevel=loglevel['Died'])
 		case 'Music' if this_json['MusicTrack'] == 'MainMenu':
 			logevent(msg_term='Exited to main menu',
-				emoji='🚪', timestamp=logtime, loglevel=loglevel['Default'])
+				emoji='🚪', timestamp=logtime, loglevel=2)
 		case 'Commander':
 			logevent(msg_term=f'Started new session for CMDR {this_json['Name']}',
-					emoji='🔄', timestamp=logtime, loglevel=loglevel['Default'])
+					emoji='🔄', timestamp=logtime, loglevel=2)
 			session.reset()
 		case 'SupercruiseDestinationDrop' if '$MULTIPLAYER' in this_json['Type']:
 			logevent(msg_term=f'Dropped at {this_json['Type_Localised']}',
-					emoji='🚀', timestamp=logtime, loglevel=loglevel['Default'])
+					emoji='🚀', timestamp=logtime, loglevel=2)
 			session.reset()
 		case 'ReceiveText':
 			if any(x in this_json['Message'] for x in bait_messages):
@@ -216,7 +228,7 @@ def processevent(line):
 					emoji='📦', timestamp=logtime, loglevel=loglevel['CargoLost'])
 		case 'Shutdown':
 			logevent(msg_term='Quit to desktop',
-					emoji='🛑', timestamp=logtime, loglevel=loglevel['Default'])
+					emoji='🛑', timestamp=logtime, loglevel=2)
 			sys.exit()
 
 def time_format(seconds: int) -> str:
