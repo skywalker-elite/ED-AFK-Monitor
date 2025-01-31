@@ -116,8 +116,8 @@ def processevent(line):
 			if not ship in session.scans and (ship in ships_easy or ship in ships_hard):
 				session.scans.append(ship)
 				col = Col.EASY if ship in ships_easy else Col.HARD
-				hard = '(!)' if ship in ships_hard else ''
-				logevent(msg_term=f'{col}Scan{Col.END}: {ship}{hard}',
+				hard = ' ☠️' if ship in ships_hard else ''
+				logevent(msg_term=f'{col}Scan{Col.END}: {ship}',
 						msg_discord=f'**{ship}**{hard}',
 						emoji='🔎', timestamp=logtime, loglevel=loglevel['Scans'])
 		case 'Bounty':
@@ -135,9 +135,9 @@ def processevent(line):
 
 			ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
 			col = Col.HARD if ship in ships_hard else Col.EASY
-			hard = '(!)' if ship in ships_hard else ''
-			logevent(msg_term=f'{col}Kill{Col.END}: {ship}{hard} ({this_json['VictimFaction']}){killtime_t}',
-					msg_discord=f'**{ship}{hard}** ({this_json['VictimFaction']}){killtime_d}',
+			hard = ' ☠️' if ship in ships_hard else ''
+			logevent(msg_term=f'{col}Kill{Col.END}: {ship} ({this_json['VictimFaction']}){killtime_t}',
+					msg_discord=f'**{ship}**{hard} ({this_json['VictimFaction']}){killtime_d}',
 					emoji='💥', timestamp=logtime, loglevel=loglevel['Kills'])
 			
 			if session.kills % 10 == 0 and this_json['event'] == 'Bounty':
