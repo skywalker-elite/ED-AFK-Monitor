@@ -55,6 +55,7 @@ class Tracking():
 		self.fighterhull = 0
 		self.logged = 0
 		self.missioncompletes = 0
+		self.lastevent = ''
 
 session = Instance()
 track = Tracking()
@@ -109,6 +110,7 @@ def logevent(msg_term, msg_discord=None, emoji='', timestamp=None, loglevel=1):
 def processevent(line):
 	this_json = json.loads(line)
 	logtime = datetime.fromisoformat(this_json['timestamp'])
+
 	
 	match this_json['event']:
 		case 'ShipTargeted' if 'Ship' in this_json:
@@ -174,7 +176,7 @@ def processevent(line):
 			logevent(msg_term=f'{col}Fuel reserves {level}!{Col.END} (Remaining: {fuelremaining}%)',
 					msg_discord=f'**Fuel reserves {level}!** (Remaining: {fuelremaining}%)',
 					emoji='⛽', timestamp=logtime, loglevel=fuel_loglevel)
-		case 'FighterDestroyed':
+		case 'FighterDestroyed' if track.lastevent != 'StartJump':
 			logevent(msg_term=f'{Col.BAD}Fighter destroyed!{Col.END}',
 					msg_discord=f'**Fighter destroyed!**',
 					emoji='🕹️', timestamp=logtime, loglevel=loglevel['FighterDown'])
@@ -231,6 +233,7 @@ def processevent(line):
 			logevent(msg_term='Quit to desktop',
 					emoji='🛑', timestamp=logtime, loglevel=2)
 			sys.exit()
+	track.lastevent = this_json['event']
 
 def time_format(seconds: int) -> str:
 	if seconds is not None:
