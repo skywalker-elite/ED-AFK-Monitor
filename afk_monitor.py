@@ -11,7 +11,6 @@ try:
 except ImportError:
 	discord_avail = False
 	print('Discord.py unavailable - operating with terminal output only\n')
-	input('Press ENTER to exit')
 
 # Load config file
 config = configparser.ConfigParser()
@@ -32,10 +31,13 @@ discord_webhook = config['Discord']['WebhookURL']
 discord_user = config['Discord']['UserID']
 
 # Internals
-version = "250131"
-ships_easy = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV', 'Diamondback Explorer', 'Diamondback Scout', 'Eagle', 'Imperial Courier', 'Imperial Eagle', 'Krait Phantom', 'Sidewinder', 'Viper Mk III', 'Viper Mk IV']
-ships_hard = ['Alliance Crusader', 'Alliance Challenger', 'Alliance Chieftain', 'Anaconda', 'Federal Assault Ship', 'Federal Dropship', 'Federal Gunship', 'Fer-De-Lance', 'Imperial Clipper', 'Krait MK II', 'Python', 'Vulture']
-bait_messages = ['$Pirate_ThreatTooHigh', '$Pirate_NotEnoughCargo', '$Pirate_OnNoCargoFound']
+DUPE_MAX = 5
+FUEL_LOW = 0.2
+FUEL_CRIT = 0.1
+VERSION = "250201"
+SHIPS_EASY = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV', 'Diamondback Explorer', 'Diamondback Scout', 'Eagle', 'Imperial Courier', 'Imperial Eagle', 'Krait Phantom', 'Sidewinder', 'Viper Mk III', 'Viper Mk IV']
+SHIPS_HARD = ['Alliance Crusader', 'Alliance Challenger', 'Alliance Chieftain', 'Anaconda', 'Federal Assault Ship', 'Federal Dropship', 'Federal Gunship', 'Fer-De-Lance', 'Imperial Clipper', 'Krait MK II', 'Python', 'Vulture']
+BAIT_MESSAGES = ['$Pirate_ThreatTooHigh', '$Pirate_NotEnoughCargo', '$Pirate_OnNoCargoFound']
 
 class Instance:
 	def __init__(self):
@@ -56,6 +58,9 @@ class Tracking():
 		self.logged = 0
 		self.missioncompletes = 0
 		self.lastevent = ''
+		self.dupemsg = ''
+		self.duperepeats = 1
+		self.dupewarn = False
 
 session = Instance()
 track = Tracking()
@@ -102,22 +107,31 @@ def logevent(msg_term, msg_discord=None, emoji='', timestamp=None, loglevel=1):
 	if loglevel > 0: print(f'[{logtime}]{emoji} {msg_term}')
 	track.logged +=1
 	if discord_avail and loglevel > 1:
+		if track.dupemsg == msg_term:
+			track.duperepeats += 1
+		else:
+			track.duperepeats = 1
+			track.dupewarn = False
+		track.dupemsg = msg_term
 		discord_message = msg_discord if msg_discord else f'**{msg_term}**'
-		ping = f' <@{discord_user}>' if loglevel > 2 else ''
-		webhook.send(f'{emoji} {discord_message} {{{logtime}}}{ping}')
+		ping = f' <@{discord_user}>' if loglevel > 2 and track.duperepeats == 1 else ''
+		if track.duperepeats <= DUPE_MAX:
+			webhook.send(f'{emoji} {discord_message} {{{logtime}}}{ping}')
+		elif not track.dupewarn:
+			webhook.send(f'⏸️ **Suppressing further duplicate messages** {{{logtime}}}')
+			track.dupewarn = True
 
 # Process incoming journal entries
 def processevent(line):
 	this_json = json.loads(line)
 	logtime = datetime.fromisoformat(this_json['timestamp'])
 
-	
 	match this_json['event']:
 		case 'ShipTargeted' if 'Ship' in this_json:
 			ship = this_json['Ship_Localised'] if 'Ship_Localised' in this_json else this_json['Ship'].title()
-			if not ship in session.scans and (ship in ships_easy or ship in ships_hard):
+			if not ship in session.scans and (ship in SHIPS_EASY or ship in SHIPS_HARD):
 				session.scans.append(ship)
-				if ship in ships_easy:
+				if ship in SHIPS_EASY:
 					col = Col.EASY
 					log = loglevel['ScanEasy']
 					hard = ''
@@ -142,7 +156,7 @@ def processevent(line):
 			session.lastkill = logtime
 
 			ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
-			if ship in ships_easy:
+			if ship in SHIPS_EASY:
 				col = Col.EASY
 				log = loglevel['KillEasy']
 				hard = ''
@@ -163,8 +177,8 @@ def processevent(line):
 			track.missioncompletes += 1
 			logevent(msg_term=f'Completed kills for a mission ({track.missioncompletes})',
 					emoji='✅', timestamp=logtime, loglevel=loglevel['Missions'])
-		case 'ReservoirReplenished' if this_json['FuelMain'] < fuel_tank * 0.2:
-			if this_json['FuelMain'] < fuel_tank * 0.1:
+		case 'ReservoirReplenished' if this_json['FuelMain'] < fuel_tank * FUEL_LOW:
+			if this_json['FuelMain'] < fuel_tank * FUEL_CRIT:
 				col = Col.BAD
 				fuel_loglevel = loglevel['FuelCritical']
 				level = 'critical'
@@ -220,7 +234,7 @@ def processevent(line):
 					emoji='🚀', timestamp=logtime, loglevel=2)
 			session.reset()
 		case 'ReceiveText':
-			if any(x in this_json['Message'] for x in bait_messages):
+			if any(x in this_json['Message'] for x in BAIT_MESSAGES):
 				logevent(msg_term=f'{Col.WARN}Pirate didn\'t engage due to insufficient cargo value{Col.END}',
 			 			msg_discord='**Pirate didn\'t engage due to insufficient cargo value**',
 						emoji='🎣', timestamp=logtime, loglevel=loglevel['BaitValueLow'])
@@ -253,12 +267,12 @@ def time_format(seconds: int) -> str:
 def header():
 	# Print header
 	print(f'{Col.CYAN}{'='*37}{Col.END}')
-	print(f'{Col.CYAN}ED AFK Monitor v{version} by CMDR PSIPAB{Col.END}')
+	print(f'{Col.CYAN}ED AFK Monitor v{VERSION} by CMDR PSIPAB{Col.END}')
 	print(f'{Col.CYAN}{'='*37}{Col.END}\n')
 	print(f'{Col.YELL}Journal folder:{Col.END} {journal_dir}')
 	print(f'{Col.YELL}Latest journal:{Col.END} {journal_file}\n')
 	print(f'Starting... (Press Ctrl+C to stop)\n')
-	logevent(msg_term=f'ED AFK Monitor v{version} started',
+	logevent(msg_term=f'ED AFK Monitor v{VERSION} started',
 			emoji='📖', loglevel=2)
 
 if __name__ == '__main__':
