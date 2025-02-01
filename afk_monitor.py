@@ -19,7 +19,7 @@ configfile = Path(os.path.dirname(__file__)+'\\afk_monitor.ini')
 if configfile.is_file():
 	config.read(configfile)
 else:
-	print('Config file not found - copy/rename afk_monitor.example.ini to afk_monitor.ini\n')
+	print('Config file not found - copy and rename afk_monitor.example.ini to afk_monitor.ini\n')
 	input('Press ENTER to exit')
 	sys.exit()
 
@@ -195,12 +195,12 @@ def processevent(line):
 			hullhealth = round(this_json['Health'] * 100)
 			if this_json['Fighter'] and not this_json['PlayerPilot'] and track.fighterhull != this_json['Health']:
 				track.fighterhull = this_json['Health']
-				logevent(msg_term=f'{Col.WARN}Fighter hull damaged!{Col.END} (Health: {hullhealth}%)',
-					msg_discord=f'**Fighter hull damaged!** (Health: {hullhealth}%)',
+				logevent(msg_term=f'{Col.WARN}Fighter hull damaged!{Col.END} (Integrity: {hullhealth}%)',
+					msg_discord=f'**Fighter hull damaged!** (Integrity: {hullhealth}%)',
 					emoji='🕹️', timestamp=logtime, loglevel=loglevel['FighterHull'])
 			elif this_json['PlayerPilot'] and not this_json['Fighter']:
-				logevent(msg_term=f'{Col.BAD}Ship hull damaged!{Col.END} (Health: {hullhealth}%)',
-					msg_discord=f'**Ship hull damaged!** (Health: {hullhealth}%)',
+				logevent(msg_term=f'{Col.BAD}Ship hull damaged!{Col.END} (Integrity: {hullhealth}%)',
+					msg_discord=f'**Ship hull damaged!** (Integrity: {hullhealth}%)',
 					emoji='🛠️', timestamp=logtime, loglevel=loglevel['ShipHull'])
 		case 'Died':
 			logevent(msg_term=f'{Col.BAD}Ship destroyed!{Col.END}',
@@ -247,7 +247,7 @@ def time_format(seconds: int) -> str:
 		elif seconds == 0:
 			return '0s'
 
-if __name__ == '__main__':
+def header():
 	# Print header
 	print(f'{Col.CYAN}{'='*37}{Col.END}')
 	print(f'{Col.CYAN}ED AFK Monitor v{version} by CMDR PSIPAB{Col.END}')
@@ -257,6 +257,9 @@ if __name__ == '__main__':
 	print(f'Starting... (Press Ctrl+C to stop)\n')
 	logevent(msg_term=f'ED AFK Monitor v{version} started',
 			emoji='📖', loglevel=2)
+
+if __name__ == '__main__':
+	header()
 
 	# Open journal from end and watch for new lines
 	with open(journal_dir+'\\'+journal_file, 'r') as file:
@@ -274,6 +277,7 @@ if __name__ == '__main__':
 			logevent(msg_term=f'ED AFK Monitor stopped ({journal_file})',
 					msg_discord=f'**ED AFK Monitor stopped** ({journal_file})',
 					emoji='📕', loglevel=2)
+			webhook.send('_ _')
 			if sys.argv[0].count('\\') > 1: input('\nPress ENTER to exit')	# This is *still* horrible
 		except:
 			input("Something went wrong, hit ENTER to exit")
