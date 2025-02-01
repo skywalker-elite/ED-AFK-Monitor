@@ -151,7 +151,7 @@ def processevent(line):
 			if session.lastkill:
 				seconds = (thiskill-session.lastkill).total_seconds()
 				killtime_t = f' [+{time_format(seconds)}]'
-				killtime_d = f' **{killtime_t}**'
+				killtime_d = f' **[+{time_format(seconds)}]**'
 				session.killstime += seconds
 			session.lastkill = logtime
 
