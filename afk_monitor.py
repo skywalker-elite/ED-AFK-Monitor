@@ -7,9 +7,9 @@ from datetime import datetime, timezone
 import configparser
 try:
 	from discord import SyncWebhook
-	discord_avail = True
+	discord_enabled = True
 except ImportError:
-	discord_avail = False
+	discord_enabled = False
 	print('Discord.py unavailable - operating with terminal output only\n')
 
 # Load config file
@@ -23,18 +23,19 @@ else:
 	sys.exit()
 
 # Get settings
-journal_folder = config['Settings']['JournalFolder']
+journal_folder = config['Settings'].get('JournalFolder', '')
 use_utc = config['Settings'].getboolean('UseUTC', False)
 fuel_tank = config['Settings'].getint('FuelTank', 64)
-loglevel = config['LogLevels']
-discord_webhook = config['Discord']['WebhookURL']
-discord_user = config['Discord']['UserID']
+discord_webhook = config['Discord'].get('WebhookURL', '')
+discord_user = config['Discord'].get('UserID', '')
+loglevel = config['LogLevels'] if config.has_section('LogLevels') else []
 
 # Internals
 DUPE_MAX = 5
 FUEL_LOW = 0.2
 FUEL_CRIT = 0.1
-VERSION = "250201"
+LOGLEVEL_FALLBACK = 1
+VERSION = "250202"
 SHIPS_EASY = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV', 'Diamondback Explorer', 'Diamondback Scout', 'Eagle', 'Imperial Courier', 'Imperial Eagle', 'Krait Phantom', 'Sidewinder', 'Viper Mk III', 'Viper Mk IV']
 SHIPS_HARD = ['Alliance Crusader', 'Alliance Challenger', 'Alliance Chieftain', 'Anaconda', 'Federal Assault Ship', 'Federal Dropship', 'Federal Gunship', 'Fer-De-Lance', 'Imperial Clipper', 'Krait MK II', 'Python', 'Vulture']
 BAIT_MESSAGES = ['$Pirate_ThreatTooHigh', '$Pirate_NotEnoughCargo', '$Pirate_OnNoCargoFound']
@@ -65,8 +66,10 @@ class Tracking():
 session = Instance()
 track = Tracking()
 
-if discord_webhook[:19] != 'https://discord.com': discord_avail = False
-if discord_avail:
+if 'https://discord.com' not in discord_webhook:
+	discord_enabled = False
+	print('Discord webhook not set - operating with terminal output only\n')
+elif discord_enabled:
 	webhook = SyncWebhook.from_url(config['Discord']['WebhookURL'])
 
 class Col:
@@ -77,6 +80,7 @@ class Col:
 	WARN = '\x1b[38;5;215m'
 	BAD = '\x1b[38;5;15m\x1b[48;5;1m'
 	GOOD = '\x1b[38;5;15m\x1b[48;5;2m'
+	WHITE = '\033[97m'
 	END = '\x1b[0m'
 
 # Set journal folder
@@ -106,7 +110,7 @@ def logevent(msg_term, msg_discord=None, emoji='', timestamp=None, loglevel=1):
 	logtime = datetime.strftime(logtime, '%H:%M:%S')
 	if loglevel > 0: print(f'[{logtime}]{emoji} {msg_term}')
 	track.logged +=1
-	if discord_avail and loglevel > 1:
+	if discord_enabled and loglevel > 1:
 		if track.dupemsg == msg_term:
 			track.duperepeats += 1
 		else:
@@ -121,6 +125,13 @@ def logevent(msg_term, msg_discord=None, emoji='', timestamp=None, loglevel=1):
 			webhook.send(f'⏸️ **Suppressing further duplicate messages** {{{logtime}}}')
 			track.dupewarn = True
 
+def getloglevel(key=None) -> int:
+	if key in loglevel and loglevel.get(key):
+		return loglevel.getint(key, LOGLEVEL_FALLBACK)
+	else:
+		print(f'{Col.WHITE}Warning:{Col.END} \'{key}\' not found in config section \'LogLevels\', defaulting to {LOGLEVEL_FALLBACK}')
+		return LOGLEVEL_FALLBACK
+
 # Process incoming journal entries
 def processevent(line):
 	this_json = json.loads(line)
@@ -133,11 +144,11 @@ def processevent(line):
 				session.scans.append(ship)
 				if ship in SHIPS_EASY:
 					col = Col.EASY
-					log = loglevel['ScanEasy']
+					log = getloglevel('ScanEasy')
 					hard = ''
 				else:
 					col = Col.HARD
-					log = loglevel['ScanHard']
+					log = getloglevel('ScanHard')
 					hard = ' ☠️'
 				logevent(msg_term=f'{col}Scan{Col.END}: {ship}',
 						msg_discord=f'**{ship}**{hard}',
@@ -158,11 +169,11 @@ def processevent(line):
 			ship = this_json['Target_Localised'] if 'Target_Localised' in this_json else this_json['Target'].title()
 			if ship in SHIPS_EASY:
 				col = Col.EASY
-				log = loglevel['KillEasy']
+				log = getloglevel('KillEasy')
 				hard = ''
 			else:
 				col = Col.HARD
-				log = loglevel['KillHard']
+				log = getloglevel('KillHard')
 				hard = ' ☠️'
 			logevent(msg_term=f'{col}Kill{Col.END}: {ship} ({this_json['VictimFaction']}){killtime_t}',
 					msg_discord=f'**{ship}**{hard} ({this_json['VictimFaction']}){killtime_d}',
@@ -172,19 +183,19 @@ def processevent(line):
 				avgseconds = session.killstime / (session.kills - 1)
 				kills_hour = round(3600 / avgseconds, 1)
 				logevent(msg_term=f'Session kills: {session.kills} (Avg: {time_format(avgseconds)} | {kills_hour}/h)',
-						emoji='📝', timestamp=logtime, loglevel=loglevel['Reports'])
+						emoji='📝', timestamp=logtime, loglevel=getloglevel('Reports'))
 		case 'MissionRedirected' if 'Mission_Massacre' in this_json['Name']:
 			track.missioncompletes += 1
 			logevent(msg_term=f'Completed kills for a mission ({track.missioncompletes})',
-					emoji='✅', timestamp=logtime, loglevel=loglevel['Missions'])
+					emoji='✅', timestamp=logtime, loglevel=getloglevel('Missions'))
 		case 'ReservoirReplenished' if this_json['FuelMain'] < fuel_tank * FUEL_LOW:
 			if this_json['FuelMain'] < fuel_tank * FUEL_CRIT:
 				col = Col.BAD
-				fuel_loglevel = loglevel['FuelCritical']
+				fuel_loglevel = getloglevel('FuelCritical')
 				level = 'critical'
 			else:
 				col = Col.WARN
-				fuel_loglevel = loglevel['FuelLow']
+				fuel_loglevel = getloglevel('FuelLow')
 				level = 'low'
 			fuelremaining = round((this_json['FuelMain'] / fuel_tank) * 100)
 			logevent(msg_term=f'{col}Fuel reserves {level}!{Col.END} (Remaining: {fuelremaining}%)',
@@ -193,7 +204,7 @@ def processevent(line):
 		case 'FighterDestroyed' if track.lastevent != 'StartJump':
 			logevent(msg_term=f'{Col.BAD}Fighter destroyed!{Col.END}',
 					msg_discord=f'**Fighter destroyed!**',
-					emoji='🕹️', timestamp=logtime, loglevel=loglevel['FighterDown'])
+					emoji='🕹️', timestamp=logtime, loglevel=getloglevel('FighterDown'))
 		case 'LaunchFighter' if not this_json['PlayerControlled']:
 			logevent(msg_term='Fighter launched',
 					emoji='🕹️', timestamp=logtime, loglevel=2)
@@ -206,22 +217,22 @@ def processevent(line):
 				col = Col.BAD
 			logevent(msg_term=f'{col}Ship shields {shields}{Col.END}',
 					msg_discord=f'**Ship shields {shields}**',
-					emoji='🛡️', timestamp=logtime, loglevel=loglevel['ShipShields'])
+					emoji='🛡️', timestamp=logtime, loglevel=getloglevel('ShipShields'))
 		case 'HullDamage':
 			hullhealth = round(this_json['Health'] * 100)
 			if this_json['Fighter'] and not this_json['PlayerPilot'] and track.fighterhull != this_json['Health']:
 				track.fighterhull = this_json['Health']
 				logevent(msg_term=f'{Col.WARN}Fighter hull damaged!{Col.END} (Integrity: {hullhealth}%)',
 					msg_discord=f'**Fighter hull damaged!** (Integrity: {hullhealth}%)',
-					emoji='🕹️', timestamp=logtime, loglevel=loglevel['FighterHull'])
+					emoji='🕹️', timestamp=logtime, loglevel=getloglevel('FighterHull'))
 			elif this_json['PlayerPilot'] and not this_json['Fighter']:
 				logevent(msg_term=f'{Col.BAD}Ship hull damaged!{Col.END} (Integrity: {hullhealth}%)',
 					msg_discord=f'**Ship hull damaged!** (Integrity: {hullhealth}%)',
-					emoji='🛠️', timestamp=logtime, loglevel=loglevel['ShipHull'])
+					emoji='🛠️', timestamp=logtime, loglevel=getloglevel('ShipHull'))
 		case 'Died':
 			logevent(msg_term=f'{Col.BAD}Ship destroyed!{Col.END}',
 					msg_discord='**Ship destroyed!**',
-					emoji='💀', timestamp=logtime, loglevel=loglevel['Died'])
+					emoji='💀', timestamp=logtime, loglevel=getloglevel('Died'))
 		case 'Music' if this_json['MusicTrack'] == 'MainMenu':
 			logevent(msg_term='Exited to main menu',
 				emoji='🚪', timestamp=logtime, loglevel=2)
@@ -237,12 +248,12 @@ def processevent(line):
 			if any(x in this_json['Message'] for x in BAIT_MESSAGES):
 				logevent(msg_term=f'{Col.WARN}Pirate didn\'t engage due to insufficient cargo value{Col.END}',
 			 			msg_discord='**Pirate didn\'t engage due to insufficient cargo value**',
-						emoji='🎣', timestamp=logtime, loglevel=loglevel['BaitValueLow'])
+						emoji='🎣', timestamp=logtime, loglevel=getloglevel('BaitValueLow'))
 		case 'EjectCargo' if not this_json["Abandoned"]:
 			name = this_json['Type_Localised'] if 'Type_Localised' else this_json['Type'].title()
 			logevent(msg_term=f'{Col.BAD}Cargo ejected!{Col.END} ({name})',
 					msg_discord=f'**Cargo ejected!** ({name})',
-					emoji='📦', timestamp=logtime, loglevel=loglevel['CargoLost'])
+					emoji='📦', timestamp=logtime, loglevel=getloglevel('CargoLost'))
 		case 'Shutdown':
 			logevent(msg_term='Quit to desktop',
 					emoji='🛑', timestamp=logtime, loglevel=2)
@@ -272,11 +283,11 @@ def header():
 	print(f'{Col.YELL}Journal folder:{Col.END} {journal_dir}')
 	print(f'{Col.YELL}Latest journal:{Col.END} {journal_file}\n')
 	print(f'Starting... (Press Ctrl+C to stop)\n')
-	logevent(msg_term=f'ED AFK Monitor v{VERSION} started',
-			emoji='📖', loglevel=2)
 
 if __name__ == '__main__':
 	header()
+	logevent(msg_term=f'ED AFK Monitor v{VERSION} started',
+			emoji='📖', loglevel=2)
 
 	# Open journal from end and watch for new lines
 	with open(journal_dir+'\\'+journal_file, 'r') as file:
