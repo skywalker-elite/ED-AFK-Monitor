@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import sys
 from datetime import datetime, timezone
-import configparser
+import tomllib
 try:
 	from discord import SyncWebhook
 	discord_enabled = True
@@ -13,22 +13,22 @@ except ImportError:
 	print('Discord.py unavailable - operating with terminal output only\n')
 
 # Load config file
-config = configparser.ConfigParser()
-configfile = Path(os.path.dirname(__file__)+'\\afk_monitor.ini')
+configfile = Path(os.path.dirname(__file__)+'\\afk_monitor.toml')
 if configfile.is_file():
-	config.read(configfile)
+	with open(configfile, "rb") as f:
+		config = tomllib.load(f)
 else:
-	print('Config file not found - copy and rename afk_monitor.example.ini to afk_monitor.ini\n')
+	print('Config file not found - copy and rename afk_monitor.example.toml to afk_monitor.toml\n')
 	input('Press ENTER to exit')
 	sys.exit()
 
 # Get settings
 journal_folder = config['Settings'].get('JournalFolder', '')
-use_utc = config['Settings'].getboolean('UseUTC', False)
-fuel_tank = config['Settings'].getint('FuelTank', 64)
+use_utc = config['Settings'].get('UseUTC', False)
+fuel_tank = config['Settings'].get('FuelTank', 64)
 discord_webhook = config['Discord'].get('WebhookURL', '')
 discord_user = config['Discord'].get('UserID', '')
-loglevel = config['LogLevels'] if config.has_section('LogLevels') else []
+loglevel = config['LogLevels'] if 'LogLevels' in config else []
 
 # Internals
 DUPE_MAX = 5
@@ -127,7 +127,7 @@ def logevent(msg_term, msg_discord=None, emoji='', timestamp=None, loglevel=1):
 
 def getloglevel(key=None) -> int:
 	if key in loglevel and loglevel.get(key):
-		return loglevel.getint(key, LOGLEVEL_FALLBACK)
+		return loglevel.get(key, LOGLEVEL_FALLBACK)
 	else:
 		print(f'{Col.WHITE}Warning:{Col.END} \'{key}\' not found in config section \'LogLevels\', defaulting to {LOGLEVEL_FALLBACK}')
 		return LOGLEVEL_FALLBACK
@@ -305,7 +305,7 @@ if __name__ == '__main__':
 			logevent(msg_term=f'ED AFK Monitor stopped ({journal_file})',
 					msg_discord=f'**ED AFK Monitor stopped** ({journal_file})',
 					emoji='📕', loglevel=2)
-			webhook.send('_ _')
+			if discord_enabled: webhook.send('_ _')
 			if sys.argv[0].count('\\') > 1: input('\nPress ENTER to exit')	# This is *still* horrible
 		except:
 			input("Something went wrong, hit ENTER to exit")

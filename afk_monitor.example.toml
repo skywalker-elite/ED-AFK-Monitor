@@ -1,18 +1,19 @@
 [Settings]
-# By default ED AFK Monitor will load journals from your user folder
+# By default journals are loaded from your user folder
 # To override this change JournalFolder below, e.g.:
-# JournalFolder = \\SOMENETWORKSHARE\Users\me\Saved Games\Frontier Developments\Elite Dangerous
-JournalFolder = 
-# UseUTC = True converts timestamps to UTC (in-game time), False (default) uses your local timezone
-UseUTC = False
+# JournalFolder = '\\SOMENETWORKSHARE\Users\me\Saved Games\Frontier Developments\Elite Dangerous'
+JournalFolder = ''
+# UseUTC = true converts timestamps to UTC (in-game time), false (default) uses your local timezone
+UseUTC = false
 
 [Discord]
 # Use the settings below to enable Discord webhook integration
-# Webhook URL is located in Discord > Edit Channel > Integrations > Webhooks
-WebhookURL = 
+# Webhook URL is located in Discord > Edit Channel > Integrations > Webhooks, e.g:
+# WebhookURL = 'https://justanexample.fake/api/webhooks/lotsofnumbers/lotsoflettersnumbersandsymbols'
+WebhookURL = ''
 # User ID can be found by sending \@yourdiscordusername on Discord (use only the numbers), e.g.:
 # UserID = 745279460191739562
-UserID = 
+UserID = 0
 
 [LogLevels]
 # 0 = None
