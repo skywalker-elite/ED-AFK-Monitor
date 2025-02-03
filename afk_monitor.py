@@ -13,7 +13,10 @@ except ImportError:
 	print('Discord.py unavailable - operating with terminal output only\n')
 
 # Load config file
-configfile = Path(os.path.dirname(__file__)+'\\afk_monitor.toml')
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+	configfile = Path(__file__).parents[1] / 'afk_monitor.toml'
+else:
+	configfile = Path(__file__).parent / 'afk_monitor.toml'
 if configfile.is_file():
 	with open(configfile, "rb") as f:
 		config = tomllib.load(f)
@@ -186,7 +189,7 @@ def processevent(line):
 						emoji='📝', timestamp=logtime, loglevel=getloglevel('Reports'))
 		case 'MissionRedirected' if 'Mission_Massacre' in this_json['Name']:
 			track.missioncompletes += 1
-			logevent(msg_term=f'Completed kills for a mission ({track.missioncompletes})',
+			logevent(msg_term=f'Completed kills for a mission (x{track.missioncompletes})',
 					emoji='✅', timestamp=logtime, loglevel=getloglevel('Missions'))
 		case 'ReservoirReplenished' if this_json['FuelMain'] < fuel_tank * FUEL_LOW:
 			if this_json['FuelMain'] < fuel_tank * FUEL_CRIT:
