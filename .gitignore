@@ -10,3 +10,4 @@ afk-monitor-test.py
 test.py
 afk_monitor.toml
 afk_monitor.spec
+build.bat

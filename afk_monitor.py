@@ -34,11 +34,12 @@ discord_user = config['Discord'].get('UserID', '')
 loglevel = config['LogLevels'] if 'LogLevels' in config else []
 
 # Internals
+VERSION = "250205"
+GITHUB_LINK = "https://github.com"
 DUPE_MAX = 5
 FUEL_LOW = 0.2
 FUEL_CRIT = 0.1
 LOGLEVEL_FALLBACK = 1
-VERSION = "250202"
 SHIPS_EASY = ['Adder', 'Asp Explorer', 'Asp Scout', 'Cobra Mk III', 'Cobra Mk IV', 'Diamondback Explorer', 'Diamondback Scout', 'Eagle', 'Imperial Courier', 'Imperial Eagle', 'Krait Phantom', 'Sidewinder', 'Viper Mk III', 'Viper Mk IV']
 SHIPS_HARD = ['Alliance Crusader', 'Alliance Challenger', 'Alliance Chieftain', 'Anaconda', 'Federal Assault Ship', 'Federal Dropship', 'Federal Gunship', 'Fer-De-Lance', 'Imperial Clipper', 'Krait MK II', 'Python', 'Vulture']
 BAIT_MESSAGES = ['$Pirate_ThreatTooHigh', '$Pirate_NotEnoughCargo', '$Pirate_OnNoCargoFound']
@@ -289,7 +290,9 @@ def header():
 
 if __name__ == '__main__':
 	header()
-	logevent(msg_term=f'ED AFK Monitor v{VERSION} started',
+	if discord_enabled: webhook.send(f'# 💥 ED AFK Monitor 💥\n-# by CMDR PSIPAB ([v{VERSION}]({GITHUB_LINK}))')
+	logevent(msg_term=f'Monitor started ({journal_file})',
+			msg_discord=f'**Monitor started** ({journal_file})',
 			emoji='📖', loglevel=2)
 
 	# Open journal from end and watch for new lines
@@ -305,10 +308,9 @@ if __name__ == '__main__':
 				
 				processevent(line)
 		except (KeyboardInterrupt, SystemExit):
-			logevent(msg_term=f'ED AFK Monitor stopped ({journal_file})',
-					msg_discord=f'**ED AFK Monitor stopped** ({journal_file})',
+			logevent(msg_term=f'Monitor stopped ({journal_file})',
+					msg_discord=f'**Monitor stopped** ({journal_file})',
 					emoji='📕', loglevel=2)
-			if discord_enabled: webhook.send('_ _')
 			if sys.argv[0].count('\\') > 1: input('\nPress ENTER to exit')	# This is *still* horrible
 		except:
 			input("Something went wrong, hit ENTER to exit")
