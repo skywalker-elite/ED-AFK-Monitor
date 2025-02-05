@@ -35,7 +35,7 @@ loglevel = config['LogLevels'] if 'LogLevels' in config else []
 
 # Internals
 VERSION = "250205"
-GITHUB_LINK = "https://github.com"
+GITHUB_LINK = "https://github.com/PsiPab/ED-AFK-Monitor"
 DUPE_MAX = 5
 FUEL_LOW = 0.2
 FUEL_CRIT = 0.1
