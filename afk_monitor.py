@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 from datetime import datetime, timezone
 import tomllib
+import os
 try:
 	from discord import SyncWebhook
 	discord_enabled = True
@@ -37,7 +38,7 @@ discord_timestamp = config['Discord'].get('Timestamp', True)
 loglevel = config['LogLevels'] if 'LogLevels' in config else []
 
 # Internals
-VERSION = "250205"
+VERSION = "250206"
 GITHUB_LINK = "https://github.com/PsiPab/ED-AFK-Monitor"
 DUPE_MAX = 5
 FUEL_LOW = 0.2
@@ -293,6 +294,9 @@ def header():
 	print('Starting... (Press Ctrl+C to stop)\n')
 
 if __name__ == '__main__':
+	# Title (Windows-only)
+	if os.name=='nt': os.system(f'title ED AFK Monitor v{VERSION}')
+
 	header()
 	if discord_enabled:
 		webhook.send(f'# 💥 ED AFK Monitor 💥\n-# by CMDR PSIPAB ([v{VERSION}]({GITHUB_LINK}))')
