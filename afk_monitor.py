@@ -1,4 +1,3 @@
-import os
 import time
 import json
 from pathlib import Path
@@ -89,19 +88,27 @@ class Col:
 
 # Set journal folder
 if not journal_folder:
-	home_dir = str(Path.home())
-	journal_dir = home_dir+'\\Saved Games\\Frontier Developments\\Elite Dangerous'
+	home_dir = Path.home()
+	journal_dir = home_dir / 'Saved Games' / 'Frontier Developments' / 'Elite Dangerous'
 else:
-	journal_dir = journal_folder
+	journal_dir = Path(journal_folder)
 
 # Get latest journal file
+if not journal_dir.is_dir():
+	print(f"Directory {journal_dir} not found")
+	input('Press ENTER to exit')
+	sys.exit()
+
 files = []
-fileslist = os.scandir(journal_dir)
-for entry in fileslist:
-	if entry.is_file():
-		if entry.name[:7] == 'Journal':
-			files.append(entry.name)
-fileslist.close()
+for entry in sorted(journal_dir.glob('*.log')):
+	if entry.is_file() and entry.name.startswith('Journal.'):
+		files.append(entry.name)
+
+if not files:
+	print(f"Directory {journal_dir} does not contain any journal file")
+	input('Press ENTER to exit')
+	sys.exit()
+print(files)
 journal_file = files[len(files)-1]
 
 # Log events
@@ -182,7 +189,7 @@ def processevent(line):
 			logevent(msg_term=f'{col}Kill{Col.END}: {ship} ({this_json['VictimFaction']}){killtime_t}',
 					msg_discord=f'**{ship}**{hard} ({this_json['VictimFaction']}){killtime_d}',
 					emoji='💥', timestamp=logtime, loglevel=log)
-			
+
 			if session.kills % 10 == 0 and this_json['event'] == 'Bounty':
 				avgseconds = session.killstime / (session.kills - 1)
 				kills_hour = round(3600 / avgseconds, 1)
@@ -274,10 +281,9 @@ def time_format(seconds: int) -> str:
 			return '{:d}h{:d}m{:d}s'.format(h, m, s)
 		elif m > 0:
 			return '{:d}m{:d}s'.format(m, s)
-		elif s > 0:
+		else:
 			return '{:d}s'.format(s)
-		elif seconds == 0:
-			return '0s'
+
 
 def header():
 	# Print header
@@ -286,17 +292,18 @@ def header():
 	print(f'{Col.CYAN}{'='*37}{Col.END}\n')
 	print(f'{Col.YELL}Journal folder:{Col.END} {journal_dir}')
 	print(f'{Col.YELL}Latest journal:{Col.END} {journal_file}\n')
-	print(f'Starting... (Press Ctrl+C to stop)\n')
+	print('Starting... (Press Ctrl+C to stop)\n')
 
 if __name__ == '__main__':
 	header()
-	if discord_enabled: webhook.send(f'# 💥 ED AFK Monitor 💥\n-# by CMDR PSIPAB ([v{VERSION}]({GITHUB_LINK}))')
+	if discord_enabled:
+		webhook.send(f'# 💥 ED AFK Monitor 💥\n-# by CMDR PSIPAB ([v{VERSION}]({GITHUB_LINK}))')
 	logevent(msg_term=f'Monitor started ({journal_file})',
 			msg_discord=f'**Monitor started** ({journal_file})',
 			emoji='📖', loglevel=2)
 
 	# Open journal from end and watch for new lines
-	with open(journal_dir+'\\'+journal_file, 'r') as file:
+	with (journal_dir / journal_file).open() as file:
 		file.seek(0, 2)
 
 		try:
@@ -305,12 +312,15 @@ if __name__ == '__main__':
 				if not line:
 					time.sleep(1)
 					continue
-				
+
 				processevent(line)
 		except (KeyboardInterrupt, SystemExit):
 			logevent(msg_term=f'Monitor stopped ({journal_file})',
 					msg_discord=f'**Monitor stopped** ({journal_file})',
 					emoji='📕', loglevel=2)
-			if sys.argv[0].count('\\') > 1: input('\nPress ENTER to exit')	# This is *still* horrible
-		except:
-			input("Something went wrong, hit ENTER to exit")
+			if sys.argv[0].count('\\') > 1:
+				input('\nPress ENTER to exit')	# This is *still* horrible
+				sys.exit()
+		except Exception as e:
+			print(f"Something went wrong: {e}")
+			input("Press ENTER to exit")
