@@ -33,6 +33,7 @@ setting_utc = config['Settings'].get('UseUTC', False)
 setting_fueltank = config['Settings'].get('FuelTank', 64)
 discord_webhook = config['Discord'].get('WebhookURL', '')
 discord_user = config['Discord'].get('UserID', '')
+discord_timestamp = config['Discord'].get('Timestamp', True)
 loglevel = config['LogLevels'] if 'LogLevels' in config else []
 
 # Internals
@@ -127,10 +128,11 @@ def logevent(msg_term, msg_discord=None, emoji='', timestamp=None, loglevel=1):
 		track.dupemsg = msg_term
 		discord_message = msg_discord if msg_discord else f'**{msg_term}**'
 		ping = f' <@{discord_user}>' if loglevel > 2 and track.duperepeats == 1 else ''
+		logtime = f' {{{logtime}}}' if discord_timestamp else ''
 		if track.duperepeats <= DUPE_MAX:
-			webhook.send(f'{emoji} {discord_message} {{{logtime}}}{ping}')
+			webhook.send(f'{emoji} {discord_message}{logtime}{ping}')
 		elif not track.dupewarn:
-			webhook.send(f'⏸️ **Suppressing further duplicate messages** {{{logtime}}}')
+			webhook.send(f'⏸️ **Suppressing further duplicate messages**{logtime}')
 			track.dupewarn = True
 
 def getloglevel(key=None) -> int:

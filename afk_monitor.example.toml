@@ -14,6 +14,8 @@ WebhookURL = ''
 # User ID can be found by sending \@yourdiscordusername on Discord (use only the numbers), e.g.:
 # UserID = 745279460191739562
 UserID = 0
+# Timestamp = true (default) appends a timestamp to Discord messages, set false to disable
+Timestamp = true
 
 [LogLevels]
 # 0 = None
