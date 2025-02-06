@@ -25,9 +25,9 @@ else:
 	sys.exit()
 
 # Get settings
-journal_folder = config['Settings'].get('JournalFolder', '')
-use_utc = config['Settings'].get('UseUTC', False)
-fuel_tank = config['Settings'].get('FuelTank', 64)
+setting_journal = config['Settings'].get('JournalFolder', '')
+setting_utc = config['Settings'].get('UseUTC', False)
+setting_fueltank = config['Settings'].get('FuelTank', 64)
 discord_webhook = config['Discord'].get('WebhookURL', '')
 discord_user = config['Discord'].get('UserID', '')
 loglevel = config['LogLevels'] if 'LogLevels' in config else []
@@ -87,11 +87,11 @@ class Col:
 	END = '\x1b[0m'
 
 # Set journal folder
-if not journal_folder:
+if not setting_journal:
 	home_dir = Path.home()
 	journal_dir = home_dir / 'Saved Games' / 'Frontier Developments' / 'Elite Dangerous'
 else:
-	journal_dir = Path(journal_folder)
+	journal_dir = Path(setting_journal)
 
 # Get latest journal file
 if not journal_dir.is_dir():
@@ -114,9 +114,9 @@ journal_file = files[len(files)-1]
 def logevent(msg_term, msg_discord=None, emoji='', timestamp=None, loglevel=1):
 	loglevel = int(loglevel)
 	if timestamp:
-		logtime = timestamp if use_utc else timestamp.astimezone()
+		logtime = timestamp if setting_utc else timestamp.astimezone()
 	else:
-		logtime = datetime.now(timezone.utc) if use_utc else datetime.now()
+		logtime = datetime.now(timezone.utc) if setting_utc else datetime.now()
 	logtime = datetime.strftime(logtime, '%H:%M:%S')
 	if loglevel > 0: print(f'[{logtime}]{emoji} {msg_term}')
 	track.logged +=1
@@ -198,8 +198,8 @@ def processevent(line):
 			track.missioncompletes += 1
 			logevent(msg_term=f'Completed kills for a mission (x{track.missioncompletes})',
 					emoji='✅', timestamp=logtime, loglevel=getloglevel('Missions'))
-		case 'ReservoirReplenished' if this_json['FuelMain'] < fuel_tank * FUEL_LOW:
-			if this_json['FuelMain'] < fuel_tank * FUEL_CRIT:
+		case 'ReservoirReplenished' if this_json['FuelMain'] < setting_fueltank * FUEL_LOW:
+			if this_json['FuelMain'] < setting_fueltank * FUEL_CRIT:
 				col = Col.BAD
 				fuel_loglevel = getloglevel('FuelCritical')
 				level = 'critical'
@@ -207,7 +207,7 @@ def processevent(line):
 				col = Col.WARN
 				fuel_loglevel = getloglevel('FuelLow')
 				level = 'low'
-			fuelremaining = round((this_json['FuelMain'] / fuel_tank) * 100)
+			fuelremaining = round((this_json['FuelMain'] / setting_fueltank) * 100)
 			logevent(msg_term=f'{col}Fuel reserves {level}!{Col.END} (Remaining: {fuelremaining}%)',
 					msg_discord=f'**Fuel reserves {level}!** (Remaining: {fuelremaining}%)',
 					emoji='⛽', timestamp=logtime, loglevel=fuel_loglevel)
