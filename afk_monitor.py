@@ -108,7 +108,6 @@ if not files:
 	print(f"Directory {journal_dir} does not contain any journal file")
 	input('Press ENTER to exit')
 	sys.exit()
-print(files)
 journal_file = files[len(files)-1]
 
 # Log events
@@ -283,7 +282,6 @@ def time_format(seconds: int) -> str:
 			return '{:d}m{:d}s'.format(m, s)
 		else:
 			return '{:d}s'.format(s)
-
 
 def header():
 	# Print header
