@@ -11,6 +11,11 @@ except ImportError:
 	discord_enabled = False
 	print('Discord.py unavailable - operating with terminal output only\n')
 
+def fallover(message):
+	print(message)
+	input('Press ENTER to exit')
+	sys.exit()
+
 # Load config file
 if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
 	configfile = Path(__file__).parents[1] / 'afk_monitor.toml'
@@ -20,9 +25,7 @@ if configfile.is_file():
 	with open(configfile, "rb") as f:
 		config = tomllib.load(f)
 else:
-	print('Config file not found - copy and rename afk_monitor.example.toml to afk_monitor.toml\n')
-	input('Press ENTER to exit')
-	sys.exit()
+	fallover('Config file not found - copy and rename afk_monitor.example.toml to afk_monitor.toml\n')
 
 # Get settings
 setting_journal = config['Settings'].get('JournalFolder', '')
@@ -88,27 +91,22 @@ class Col:
 
 # Set journal folder
 if not setting_journal:
-	home_dir = Path.home()
-	journal_dir = home_dir / 'Saved Games' / 'Frontier Developments' / 'Elite Dangerous'
+	journal_dir = Path.home() / 'Saved Games' / 'Frontier Developments' / 'Elite Dangerous'
 else:
 	journal_dir = Path(setting_journal)
 
 # Get latest journal file
 if not journal_dir.is_dir():
-	print(f"Directory {journal_dir} not found")
-	input('Press ENTER to exit')
-	sys.exit()
+	fallover(f"Directory {journal_dir} not found")
 
-files = []
-for entry in sorted(journal_dir.glob('*.log')):
+journal_file = ''
+for entry in sorted(journal_dir.glob('*.log'), reverse=True):
 	if entry.is_file() and entry.name.startswith('Journal.'):
-		files.append(entry.name)
+		journal_file = entry.name
+		break
 
-if not files:
-	print(f"Directory {journal_dir} does not contain any journal file")
-	input('Press ENTER to exit')
-	sys.exit()
-journal_file = files[len(files)-1]
+if not journal_file:
+	fallover(f"Directory {journal_dir} does not contain any journal file")
 
 # Log events
 def logevent(msg_term, msg_discord=None, emoji='', timestamp=None, loglevel=1):
