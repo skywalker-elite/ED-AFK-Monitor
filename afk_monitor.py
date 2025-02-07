@@ -145,7 +145,7 @@ def logevent(msg_term, msg_discord=None, emoji='', timestamp=None, loglevel=1):
 			track.dupewarn = True
 
 def getloglevel(key=None) -> int:
-	if key in loglevel and loglevel.get(key):
+	if key in loglevel:
 		return loglevel.get(key, LOGLEVEL_FALLBACK)
 	else:
 		print(f'{Col.WHITE}Warning:{Col.END} \'{key}\' not found in config section \'LogLevels\', defaulting to {LOGLEVEL_FALLBACK}')
