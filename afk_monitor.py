@@ -38,7 +38,7 @@ discord_timestamp = config['Discord'].get('Timestamp', True)
 loglevel = config['LogLevels'] if 'LogLevels' in config else []
 
 # Internals
-VERSION = "250206"
+VERSION = "250207"
 GITHUB_LINK = "https://github.com/PsiPab/ED-AFK-Monitor"
 DUPE_MAX = 5
 FUEL_LOW = 0.2
@@ -110,6 +110,14 @@ for entry in sorted(journal_dir.glob('*.log'), reverse=True):
 if not journal_file:
 	fallover(f"Directory {journal_dir} does not contain any journal file")
 
+# Send a webhook message or (don't) die trying
+def discordsend(message=''):
+	if discord_enabled and message:
+		try:
+			webhook.send(message)
+		except Exception as e:
+			print(f"Webhook send went wrong: {e}")
+
 # Log events
 def logevent(msg_term, msg_discord=None, emoji='', timestamp=None, loglevel=1):
 	loglevel = int(loglevel)
@@ -131,9 +139,9 @@ def logevent(msg_term, msg_discord=None, emoji='', timestamp=None, loglevel=1):
 		ping = f' <@{discord_user}>' if loglevel > 2 and track.duperepeats == 1 else ''
 		logtime = f' {{{logtime}}}' if discord_timestamp else ''
 		if track.duperepeats <= DUPE_MAX:
-			webhook.send(f'{emoji} {discord_message}{logtime}{ping}')
+			discordsend(f'{emoji} {discord_message}{logtime}{ping}')
 		elif not track.dupewarn:
-			webhook.send(f'⏸️ **Suppressing further duplicate messages**{logtime}')
+			discordsend(f'⏸️ **Suppressing further duplicate messages**{logtime}')
 			track.dupewarn = True
 
 def getloglevel(key=None) -> int:
@@ -298,8 +306,7 @@ if __name__ == '__main__':
 	if os.name=='nt': os.system(f'title ED AFK Monitor v{VERSION}')
 
 	header()
-	if discord_enabled:
-		webhook.send(f'# 💥 ED AFK Monitor 💥\n-# by CMDR PSIPAB ([v{VERSION}]({GITHUB_LINK}))')
+	discordsend(f'# 💥 ED AFK Monitor 💥\n-# by CMDR PSIPAB ([v{VERSION}]({GITHUB_LINK}))')
 	logevent(msg_term=f'Monitor started ({journal_file})',
 			msg_discord=f'**Monitor started** ({journal_file})',
 			emoji='📖', loglevel=2)
