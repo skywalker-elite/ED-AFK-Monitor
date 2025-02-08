@@ -194,8 +194,8 @@ def processevent(line):
 				col = Col.HARD
 				log = getloglevel('KillHard')
 				hard = ' ☠️'
-			logevent(msg_term=f'{col}Kill{Col.END}: {ship} ({this_json['VictimFaction']}){killtime_t}',
-					msg_discord=f'**{ship}**{hard} ({this_json['VictimFaction']}){killtime_d}',
+			logevent(msg_term=f"{col}Kill{Col.END}: {ship} ({this_json['VictimFaction']}){killtime_t}",
+					msg_discord=f"**{ship}**{hard} ({this_json['VictimFaction']}){killtime_d}",
 					emoji='💥', timestamp=logtime, loglevel=log)
 
 			if session.kills % 10 == 0 and this_json['event'] == 'Bounty':
@@ -256,11 +256,11 @@ def processevent(line):
 			logevent(msg_term='Exited to main menu',
 				emoji='🚪', timestamp=logtime, loglevel=2)
 		case 'Commander':
-			logevent(msg_term=f'Started new session for CMDR {this_json['Name']}',
+			logevent(msg_term=f"Started new session for CMDR {this_json['Name']}",
 					emoji='🔄', timestamp=logtime, loglevel=2)
 			session.reset()
 		case 'SupercruiseDestinationDrop' if '$MULTIPLAYER' in this_json['Type']:
-			logevent(msg_term=f'Dropped at {this_json['Type_Localised']}',
+			logevent(msg_term=f"Dropped at {this_json['Type_Localised']}",
 					emoji='🚀', timestamp=logtime, loglevel=2)
 			session.reset()
 		case 'ReceiveText':
@@ -294,9 +294,9 @@ def time_format(seconds: int) -> str:
 
 def header():
 	# Print header
-	print(f'{Col.CYAN}{'='*37}{Col.END}')
+	print(f"{Col.CYAN}{'='*37}{Col.END}")
 	print(f'{Col.CYAN}ED AFK Monitor v{VERSION} by CMDR PSIPAB{Col.END}')
-	print(f'{Col.CYAN}{'='*37}{Col.END}\n')
+	print(f"{Col.CYAN}{'='*37}{Col.END}\n")
 	print(f'{Col.YELL}Journal folder:{Col.END} {journal_dir}')
 	print(f'{Col.YELL}Latest journal:{Col.END} {journal_file}\n')
 	print('Starting... (Press Ctrl+C to stop)\n')
