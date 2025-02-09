@@ -5,6 +5,7 @@ import sys
 from datetime import datetime, timezone
 import tomllib
 import os
+import re
 try:
 	from discord import SyncWebhook
 	discord_enabled = True
@@ -102,10 +103,9 @@ if not journal_dir.is_dir():
 	fallover(f"Directory {journal_dir} not found")
 
 journal_file = ''
-for entry in sorted(journal_dir.glob('*.log'), reverse=True):
-	if entry.is_file() and entry.name.startswith('Journal.'):
-		journal_file = entry.name
-		break
+files = os.listdir(journal_dir)
+r = r'^Journal\.\d{4}-\d{2}-\d{2}T\d{6}\.\d{2}\.log$'
+journal_file = sorted([i for i in files if re.fullmatch(r, i)], reverse=True)[0]
 
 if not journal_file:
 	fallover(f"Directory {journal_dir} does not contain any journal file")
